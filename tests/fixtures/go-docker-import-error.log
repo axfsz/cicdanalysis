@@ -1,0 +1,337 @@
+Started by remote host 203.0.113.10
+[Pipeline] Start of Pipeline
+[Pipeline] node
+Running on eks-agent1 in /data/jenkins/workspace/activity-rpc-testa
+[Pipeline] {
+[Pipeline] withEnv
+[Pipeline] {
+[Pipeline] timestamps
+[Pipeline] {
+[Pipeline] stage
+[Pipeline] { (初始化)
+[Pipeline] script
+[Pipeline] {
+[Pipeline] sh
+[2026-09-17T12:18:45.624Z] + date +%Y%m%d%H%M%S
+[Pipeline] }
+[Pipeline] // script
+[Pipeline] sh
+[2026-09-17T12:18:45.946Z] + echo ========== Jenkins Pipeline 初始化 ==========
+[2026-09-17T12:18:45.946Z] ========== Jenkins Pipeline 初始化 ==========
+[2026-09-17T12:18:45.946Z] + echo JOB_NAME=activity-rpc-testa
+[2026-09-17T12:18:45.946Z] JOB_NAME=activity-rpc-testa
+[2026-09-17T12:18:45.946Z] + echo BUILD_NUMBER=717
+[2026-09-17T12:18:45.946Z] BUILD_NUMBER=717
+[2026-09-17T12:18:45.946Z] + echo NODE_NAME=eks-agent1
+[2026-09-17T12:18:45.946Z] NODE_NAME=eks-agent1
+[2026-09-17T12:18:45.946Z] + echo WORKSPACE=/data/jenkins/workspace/activity-rpc-testa
+[2026-09-17T12:18:45.946Z] WORKSPACE=/data/jenkins/workspace/activity-rpc-testa
+[2026-09-17T12:18:45.946Z] + echo SERVICE_NAME=activity-rpc
+[2026-09-17T12:18:45.946Z] SERVICE_NAME=activity-rpc
+[2026-09-17T12:18:45.946Z] + echo SERVICE_TYPE=rpc
+[2026-09-17T12:18:45.946Z] SERVICE_TYPE=rpc
+[2026-09-17T12:18:45.946Z] + echo SERVICE_PATH=services/activity/rpc/
+[2026-09-17T12:18:45.946Z] SERVICE_PATH=services/activity/rpc/
+[2026-09-17T12:18:45.946Z] + echo SERVICE_PORT=9009
+[2026-09-17T12:18:45.946Z] SERVICE_PORT=9009
+[2026-09-17T12:18:45.946Z] + echo GIT_REPO_URL=https://uggitlab.ugmid888.com/xg/uggame.git
+[2026-09-17T12:18:45.946Z] GIT_REPO_URL=https://uggitlab.ugmid888.com/xg/uggame.git
+[2026-09-17T12:18:45.946Z] + echo GIT_BRANCH=main
+[2026-09-17T12:18:45.946Z] GIT_BRANCH=main
+[2026-09-17T12:18:45.946Z] + echo K8S_NAMESPACE=testa
+[2026-09-17T12:18:45.946Z] K8S_NAMESPACE=testa
+[2026-09-17T12:18:45.946Z] + echo HARBOR=harbor.ugmid888.com/ugame
+[2026-09-17T12:18:45.946Z] HARBOR=harbor.ugmid888.com/ugame
+[2026-09-17T12:18:45.946Z] + echo BUILD_TIMESTAMP=20260917201845
+[2026-09-17T12:18:45.946Z] BUILD_TIMESTAMP=20260917201845
+[2026-09-17T12:18:45.946Z] + echo RANDOM_SUFFIX=a098e4da
+[2026-09-17T12:18:45.946Z] RANDOM_SUFFIX=a098e4da
+[2026-09-17T12:18:45.946Z] + echo =============================================
+[2026-09-17T12:18:45.946Z] =============================================
+[Pipeline] }
+[Pipeline] // stage
+[Pipeline] stage
+[Pipeline] { (拉取代码)
+[Pipeline] checkout
+[2026-09-17T12:18:46.021Z] The recommended git tool is: git
+[2026-09-17T12:18:46.027Z] using credential gitlabnew
+[2026-09-17T12:18:46.037Z] Fetching changes from the remote Git repository
+[2026-09-17T12:18:46.043Z] Cleaning workspace
+[2026-09-17T12:18:46.158Z] Using shallow fetch with depth 1
+[2026-09-17T12:18:46.033Z]  > git rev-parse --resolve-git-dir /data/jenkins/workspace/activity-rpc-testa/.git # timeout=10
+[2026-09-17T12:18:46.040Z]  > git config remote.origin.url https://uggitlab.ugmid888.com/xg/uggame.git # timeout=10
+[2026-09-17T12:18:46.044Z]  > git rev-parse --verify HEAD # timeout=10
+[2026-09-17T12:18:46.047Z] Resetting working tree
+[2026-09-17T12:18:46.047Z]  > git reset --hard # timeout=10
+[2026-09-17T12:18:46.144Z]  > git clean -fdx # timeout=10
+[2026-09-17T12:18:46.160Z] Fetching upstream changes from https://uggitlab.ugmid888.com/xg/uggame.git
+[2026-09-17T12:18:46.160Z]  > git --version # timeout=10
+[2026-09-17T12:18:46.162Z]  > git --version # 'git version 2.53.0'
+[2026-09-17T12:18:46.162Z] using GIT_ASKPASS to set credentials https://uggitlab.ugmid888.com
+[2026-09-17T12:18:46.166Z]  > git fetch --tags --force --progress --depth=1 -- https://uggitlab.ugmid888.com/xg/uggame.git +refs/heads/*:refs/remotes/origin/* # timeout=20
+[2026-09-17T12:18:48.960Z] Checking out Revision 0050833d4f31c622238fd452d52ac6b55f31c48f (refs/remotes/origin/main)
+[2026-09-17T12:18:49.060Z] Commit message: "fix(activity): render all recharge categories as any method"
+[2026-09-17T12:18:48.956Z]  > git rev-parse refs/remotes/origin/main^{commit} # timeout=10
+[2026-09-17T12:18:48.961Z]  > git config core.sparsecheckout # timeout=10
+[2026-09-17T12:18:48.963Z]  > git checkout -f 0050833d4f31c622238fd452d52ac6b55f31c48f # timeout=10
+[2026-09-17T12:18:49.061Z]  > git rev-list --no-walk b1a65dba8f4137c49ffac3c12ca81769149ff799 # timeout=10
+[Pipeline] script
+[Pipeline] {
+[Pipeline] sh
+[2026-09-17T12:18:49.484Z] + git rev-parse --short=12 HEAD
+[Pipeline] sh
+[2026-09-17T12:18:49.775Z] + git rev-parse HEAD
+[Pipeline] sh
+[2026-09-17T12:18:50.065Z] + git log -1 --pretty=%an
+[Pipeline] sh
+[2026-09-17T12:18:50.356Z] + git log -1 --pretty=%s
+[2026-09-17T12:18:50.356Z] + sed s/"/\\"/g
+[Pipeline] }
+[Pipeline] // script
+[Pipeline] sh
+[2026-09-17T12:18:50.696Z] + echo ========== Git 信息 ==========
+[2026-09-17T12:18:50.696Z] ========== Git 信息 ==========
+[2026-09-17T12:18:50.696Z] + git remote -v
+[2026-09-17T12:18:50.696Z] origin	https://uggitlab.ugmid888.com/xg/uggame.git (fetch)
+[2026-09-17T12:18:50.696Z] origin	https://uggitlab.ugmid888.com/xg/uggame.git (push)
+[2026-09-17T12:18:50.696Z] + git log -1 --pretty=format:Commit: %H%nAuthor: %an%nDate: %ad%nMessage: %s
+[2026-09-17T12:18:50.696Z] Commit: 0050833d4f31c622238fd452d52ac6b55f31c48f
+[2026-09-17T12:18:50.696Z] Author: infi
+[2026-09-17T12:18:50.696Z] Date: Thu Sep 17 20:13:15 2026 +0800
+[2026-09-17T12:18:50.696Z] Message: fix(activity): render all recharge categories as any method+ echo 
+[2026-09-17T12:18:50.696Z] 
+[2026-09-17T12:18:50.696Z] + echo ========== 镜像信息 ==========
+[2026-09-17T12:18:50.696Z] ========== 镜像信息 ==========
+[2026-09-17T12:18:50.696Z] + echo IMAGE_TAG=activity-rpc-main-20260917201845-a098e4da-0050833d4f31
+[2026-09-17T12:18:50.696Z] IMAGE_TAG=activity-rpc-main-20260917201845-a098e4da-0050833d4f31
+[2026-09-17T12:18:50.696Z] + echo IMAGE_FULL_NAME=harbor.ugmid888.com/ugame/activity-rpc:activity-rpc-main-20260917201845-a098e4da-0050833d4f31
+[2026-09-17T12:18:50.696Z] IMAGE_FULL_NAME=harbor.ugmid888.com/ugame/activity-rpc:activity-rpc-main-20260917201845-a098e4da-0050833d4f31
+[2026-09-17T12:18:50.696Z] + echo IMAGE_LATEST_NAME=harbor.ugmid888.com/ugame/activity-rpc:latest
+[2026-09-17T12:18:50.696Z] IMAGE_LATEST_NAME=harbor.ugmid888.com/ugame/activity-rpc:latest
+[2026-09-17T12:18:50.696Z] + echo ==============================
+[2026-09-17T12:18:50.696Z] ==============================
+[Pipeline] }
+[Pipeline] // stage
+[Pipeline] stage
+[Pipeline] { (打包)
+[Pipeline] sh
+[2026-09-17T12:18:51.031Z] + set -e
+[2026-09-17T12:18:51.031Z] + echo ========== 打包 / 编译前检查 ==========
+[2026-09-17T12:18:51.031Z] ========== 打包 / 编译前检查 ==========
+[2026-09-17T12:18:51.031Z] + test -f Dockerfile
+[2026-09-17T12:18:51.031Z] + test -f go.mod
+[2026-09-17T12:18:51.031Z] + test -d services/activity/rpc/
+[2026-09-17T12:18:51.031Z] + echo Go version:
+[2026-09-17T12:18:51.032Z] Go version:
+[2026-09-17T12:18:51.032Z] + go version
+[2026-09-17T12:18:51.032Z] go version go1.26.2 linux/amd64
+[2026-09-17T12:18:51.032Z] + echo Docker version:
+[2026-09-17T12:18:51.032Z] Docker version:
+[2026-09-17T12:18:51.032Z] + docker version
+[2026-09-17T12:18:51.032Z] Client: Docker Engine - Community
+[2026-09-17T12:18:51.032Z]  Version:           29.4.3
+[2026-09-17T12:18:51.032Z]  API version:       1.54
+[2026-09-17T12:18:51.032Z]  Go version:        go1.26.2
+[2026-09-17T12:18:51.032Z]  Git commit:        055a478
+[2026-09-17T12:18:51.032Z]  Built:             Wed May  6 17:07:26 2026
+[2026-09-17T12:18:51.032Z]  OS/Arch:           linux/amd64
+[2026-09-17T12:18:51.032Z]  Context:           default
+[2026-09-17T12:18:51.032Z] 
+[2026-09-17T12:18:51.032Z] Server: Docker Engine - Community
+[2026-09-17T12:18:51.032Z]  Engine:
+[2026-09-17T12:18:51.032Z]   Version:          29.4.3
+[2026-09-17T12:18:51.032Z]   API version:      1.54 (minimum version 1.40)
+[2026-09-17T12:18:51.032Z]   Go version:       go1.26.2
+[2026-09-17T12:18:51.032Z]   Git commit:       56be731
+[2026-09-17T12:18:51.032Z]   Built:            Wed May  6 17:07:26 2026
+[2026-09-17T12:18:51.032Z]   OS/Arch:          linux/amd64
+[2026-09-17T12:18:51.032Z]   Experimental:     false
+[2026-09-17T12:18:51.032Z]  containerd:
+[2026-09-17T12:18:51.032Z]   Version:          v2.2.3
+[2026-09-17T12:18:51.032Z]   GitCommit:        77c84241c7cbdd9b4eca2591793e3d4f4317c590
+[2026-09-17T12:18:51.032Z]  runc:
+[2026-09-17T12:18:51.032Z]   Version:          1.3.5
+[2026-09-17T12:18:51.032Z]   GitCommit:        v1.3.5-0-g488fc13e
+[2026-09-17T12:18:51.032Z]  docker-init:
+[2026-09-17T12:18:51.032Z]   Version:          0.19.0
+[2026-09-17T12:18:51.032Z]   GitCommit:        de40ad0
+[2026-09-17T12:18:51.032Z] + echo Kubectl version:
+[2026-09-17T12:18:51.032Z] Kubectl version:
+[2026-09-17T12:18:51.032Z] + kubectl version --client
+[2026-09-17T12:18:51.032Z] Client Version: v1.36.1
+[2026-09-17T12:18:51.032Z] Kustomize Version: v5.8.1
+[2026-09-17T12:18:51.032Z] + echo 下载 Go 依赖...
+[2026-09-17T12:18:51.032Z] 下载 Go 依赖...
+[2026-09-17T12:18:51.032Z] + go mod download
+[2026-09-17T12:18:51.032Z] + [ false = true ]
+[2026-09-17T12:18:51.032Z] + echo 跳过 go test。需要测试时构建参数 RUN_GO_TEST=true
+[2026-09-17T12:18:51.032Z] 跳过 go test。需要测试时构建参数 RUN_GO_TEST=true
+[2026-09-17T12:18:51.032Z] + mkdir -p .jenkins-build
+[2026-09-17T12:18:51.032Z] + cat
+[2026-09-17T12:18:51.032Z] + cat .jenkins-build/build-info.txt
+[2026-09-17T12:18:51.032Z] SERVICE_NAME=activity-rpc
+[2026-09-17T12:18:51.032Z] SERVICE_TYPE=rpc
+[2026-09-17T12:18:51.032Z] SERVICE_PATH=services/activity/rpc/
+[2026-09-17T12:18:51.032Z] SERVICE_PORT=9009
+[2026-09-17T12:18:51.032Z] GIT_BRANCH=main
+[2026-09-17T12:18:51.032Z] GIT_COMMIT=0050833d4f31c622238fd452d52ac6b55f31c48f
+[2026-09-17T12:18:51.032Z] IMAGE_FULL_NAME=harbor.ugmid888.com/ugame/activity-rpc:activity-rpc-main-20260917201845-a098e4da-0050833d4f31
+[2026-09-17T12:18:51.032Z] BUILD_TIMESTAMP=20260917201845
+[2026-09-17T12:18:51.032Z] + echo ========== 打包阶段完成 ==========
+[2026-09-17T12:18:51.032Z] ========== 打包阶段完成 ==========
+[Pipeline] }
+[Pipeline] // stage
+[Pipeline] stage
+[Pipeline] { (制作镜像)
+[Pipeline] sh
+[2026-09-17T12:18:51.386Z] + set -e
+[2026-09-17T12:18:51.386Z] + echo ========== Docker Build ==========
+[2026-09-17T12:18:51.386Z] ========== Docker Build ==========
+[2026-09-17T12:18:51.386Z] + echo 构建服务: activity-rpc
+[2026-09-17T12:18:51.386Z] 构建服务: activity-rpc
+[2026-09-17T12:18:51.386Z] + echo 构建路径: services/activity/rpc/
+[2026-09-17T12:18:51.386Z] 构建路径: services/activity/rpc/
+[2026-09-17T12:18:51.386Z] + echo 镜像: harbor.ugmid888.com/ugame/activity-rpc:activity-rpc-main-20260917201845-a098e4da-0050833d4f31
+[2026-09-17T12:18:51.386Z] 镜像: harbor.ugmid888.com/ugame/activity-rpc:activity-rpc-main-20260917201845-a098e4da-0050833d4f31
+[2026-09-17T12:18:51.386Z] + docker build --build-arg SERVICE=services/activity/rpc/ -t harbor.ugmid888.com/ugame/activity-rpc:activity-rpc-main-20260917201845-a098e4da-0050833d4f31 .
+[2026-09-17T12:18:51.386Z] #0 building with "default" instance using docker driver
+[2026-09-17T12:18:51.386Z] 
+[2026-09-17T12:18:51.386Z] #1 [internal] load build definition from Dockerfile
+[2026-09-17T12:18:51.642Z] #1 transferring dockerfile: 774B done
+[2026-09-17T12:18:51.642Z] #1 DONE 0.0s
+[2026-09-17T12:18:51.642Z] 
+[2026-09-17T12:18:51.642Z] #2 [internal] load metadata for docker.io/library/golang:1.26.2-alpine
+[2026-09-17T12:18:53.008Z] #2 ...
+[2026-09-17T12:18:53.008Z] 
+[2026-09-17T12:18:53.008Z] #3 [internal] load metadata for docker.io/library/alpine:3.19
+[2026-09-17T12:18:53.008Z] #3 DONE 1.6s
+[2026-09-17T12:18:53.008Z] 
+[2026-09-17T12:18:53.008Z] #2 [internal] load metadata for docker.io/library/golang:1.26.2-alpine
+[2026-09-17T12:18:53.008Z] #2 DONE 1.6s
+[2026-09-17T12:18:53.008Z] 
+[2026-09-17T12:18:53.008Z] #4 [internal] load .dockerignore
+[2026-09-17T12:18:53.008Z] #4 transferring context: 2B done
+[2026-09-17T12:18:53.008Z] #4 DONE 0.0s
+[2026-09-17T12:18:53.008Z] 
+[2026-09-17T12:18:53.008Z] #5 [internal] load build context
+[2026-09-17T12:18:53.265Z] #5 ...
+[2026-09-17T12:18:53.265Z] 
+[2026-09-17T12:18:53.265Z] #6 [stage-1 1/7] FROM docker.io/library/alpine:3.19@sha256:6baf43584bcb78f2e5847d1de515f23499913ac9f12bdf834811a3145eb11ca1
+[2026-09-17T12:18:53.265Z] #6 resolve docker.io/library/alpine:3.19@sha256:6baf43584bcb78f2e5847d1de515f23499913ac9f12bdf834811a3145eb11ca1 0.0s done
+[2026-09-17T12:18:53.265Z] #6 DONE 0.0s
+[2026-09-17T12:18:53.265Z] 
+[2026-09-17T12:18:53.265Z] #7 [builder 1/6] FROM docker.io/library/golang:1.26.2-alpine@sha256:f85330846cde1e57ca9ec309382da3b8e6ae3ab943d2739500e08c86393a21b1
+[2026-09-17T12:18:53.265Z] #7 resolve docker.io/library/golang:1.26.2-alpine@sha256:f85330846cde1e57ca9ec309382da3b8e6ae3ab943d2739500e08c86393a21b1 0.0s done
+[2026-09-17T12:18:53.265Z] #7 DONE 0.0s
+[2026-09-17T12:18:53.265Z] 
+[2026-09-17T12:18:53.265Z] #5 [internal] load build context
+[2026-09-17T12:18:53.521Z] #5 transferring context: 12.33MB 0.4s done
+[2026-09-17T12:18:53.521Z] #5 DONE 0.4s
+[2026-09-17T12:18:53.521Z] 
+[2026-09-17T12:18:53.521Z] #8 [builder 2/6] WORKDIR /app
+[2026-09-17T12:18:53.521Z] #8 CACHED
+[2026-09-17T12:18:53.521Z] 
+[2026-09-17T12:18:53.521Z] #9 [builder 3/6] COPY go.mod go.sum ./
+[2026-09-17T12:18:53.521Z] #9 CACHED
+[2026-09-17T12:18:53.521Z] 
+[2026-09-17T12:18:53.521Z] #10 [builder 4/6] RUN go mod download
+[2026-09-17T12:18:53.778Z] #10 CACHED
+[2026-09-17T12:18:53.778Z] 
+[2026-09-17T12:18:53.778Z] #11 [builder 5/6] COPY . .
+[2026-09-17T12:18:57.947Z] #11 DONE 4.1s
+[2026-09-17T12:18:57.947Z] 
+[2026-09-17T12:18:57.947Z] #12 [builder 6/6] RUN case "services/activity/rpc/" in       cron) SERVICE_PATH="services/cron" ;;       bff-*) SERVICE_PATH="bff/services/activity/rpc/" ;;       *-rpc) SERVICE_PATH="services/services/activity/rpc//rpc" ;;       *) SERVICE_PATH="services/activity/rpc/" ;;     esac &&     CGO_ENABLED=0 GOOS=linux go build -o /app/service ./${SERVICE_PATH}
+[2026-09-17T12:19:02.114Z] #12 4.154 services/activity/rpc/internal/logic/lucky_value_wager_watermark.go:13:2: package UltraGaming/services/game/provider/accountmeta is not in std (/usr/local/go/src/UltraGaming/services/game/provider/accountmeta)
+[2026-09-17T12:19:02.114Z] #12 ERROR: process "/bin/sh -c case \"${SERVICE}\" in       cron) SERVICE_PATH=\"services/cron\" ;;       bff-*) SERVICE_PATH=\"bff/${SERVICE#bff-}\" ;;       *-rpc) SERVICE_PATH=\"services/${SERVICE%-rpc}/rpc\" ;;       *) SERVICE_PATH=\"${SERVICE}\" ;;     esac &&     CGO_ENABLED=0 GOOS=linux go build -o /app/service ./${SERVICE_PATH}" did not complete successfully: exit code: 1
+[2026-09-17T12:19:02.114Z] ------
+[2026-09-17T12:19:02.114Z]  > [builder 6/6] RUN case "services/activity/rpc/" in       cron) SERVICE_PATH="services/cron" ;;       bff-*) SERVICE_PATH="bff/services/activity/rpc/" ;;       *-rpc) SERVICE_PATH="services/services/activity/rpc//rpc" ;;       *) SERVICE_PATH="services/activity/rpc/" ;;     esac &&     CGO_ENABLED=0 GOOS=linux go build -o /app/service ./${SERVICE_PATH}:
+[2026-09-17T12:19:02.114Z] 4.154 services/activity/rpc/internal/logic/lucky_value_wager_watermark.go:13:2: package UltraGaming/services/game/provider/accountmeta is not in std (/usr/local/go/src/UltraGaming/services/game/provider/accountmeta)
+[2026-09-17T12:19:02.114Z] ------
+[2026-09-17T12:19:02.114Z] Dockerfile:7
+[2026-09-17T12:19:02.114Z] --------------------
+[2026-09-17T12:19:02.114Z]    6 |     ARG SERVICE
+[2026-09-17T12:19:02.114Z]    7 | >>> RUN case "${SERVICE}" in \
+[2026-09-17T12:19:02.114Z]    8 | >>>       cron) SERVICE_PATH="services/cron" ;; \
+[2026-09-17T12:19:02.114Z]    9 | >>>       bff-*) SERVICE_PATH="bff/${SERVICE#bff-}" ;; \
+[2026-09-17T12:19:02.114Z]   10 | >>>       *-rpc) SERVICE_PATH="services/${SERVICE%-rpc}/rpc" ;; \
+[2026-09-17T12:19:02.114Z]   11 | >>>       *) SERVICE_PATH="${SERVICE}" ;; \
+[2026-09-17T12:19:02.114Z]   12 | >>>     esac && \
+[2026-09-17T12:19:02.114Z]   13 | >>>     CGO_ENABLED=0 GOOS=linux go build -o /app/service ./${SERVICE_PATH}
+[2026-09-17T12:19:02.114Z]   14 |     
+[2026-09-17T12:19:02.114Z] --------------------
+[2026-09-17T12:19:02.114Z] ERROR: failed to build: failed to solve: process "/bin/sh -c case \"${SERVICE}\" in       cron) SERVICE_PATH=\"services/cron\" ;;       bff-*) SERVICE_PATH=\"bff/${SERVICE#bff-}\" ;;       *-rpc) SERVICE_PATH=\"services/${SERVICE%-rpc}/rpc\" ;;       *) SERVICE_PATH=\"${SERVICE}\" ;;     esac &&     CGO_ENABLED=0 GOOS=linux go build -o /app/service ./${SERVICE_PATH}" did not complete successfully: exit code: 1
+[Pipeline] }
+[Pipeline] // stage
+[Pipeline] stage
+[Pipeline] { (推送镜像)
+Stage "推送镜像" skipped due to earlier failure(s)
+[Pipeline] getContext
+[Pipeline] }
+[Pipeline] // stage
+[Pipeline] stage
+[Pipeline] { (Deploy)
+Stage "Deploy" skipped due to earlier failure(s)
+[Pipeline] getContext
+[Pipeline] }
+[Pipeline] // stage
+[Pipeline] stage
+[Pipeline] { (Webhook通知)
+Stage "Webhook通知" skipped due to earlier failure(s)
+[Pipeline] getContext
+[Pipeline] }
+[Pipeline] // stage
+[Pipeline] stage
+[Pipeline] { (Declarative: Post Actions)
+[Pipeline] sh
+[2026-09-17T12:19:02.690Z] + echo ========== 清理本地临时构建文件 ==========
+[2026-09-17T12:19:02.690Z] ========== 清理本地临时构建文件 ==========
+[2026-09-17T12:19:02.690Z] + rm -rf .jenkins-build
+[Pipeline] script
+[Pipeline] {
+[Pipeline] sh
+[2026-09-17T12:19:02.997Z] + date +%Y-%m-%d %H:%M:%S %z
+[Pipeline] writeFile
+[Pipeline] sh
+[2026-09-17T12:19:03.314Z] + set +x
+[2026-09-17T12:19:03.314Z] ========== Webhook Payload ==========
+[2026-09-17T12:19:03.314Z] {
+[2026-09-17T12:19:03.314Z]     "title": "\u274c Jenkins \u53d1\u5e03\u901a\u77e5",
+[2026-09-17T12:19:03.314Z]     "status": "FAILURE",
+[2026-09-17T12:19:03.314Z]     "status_text": "\ud83d\udd34 FAILURE",
+[2026-09-17T12:19:03.314Z]     "service_type": "rpc",
+[2026-09-17T12:19:03.314Z]     "service_name": "activity-rpc",
+[2026-09-17T12:19:03.314Z]     "harbor_project": "ugame",
+[2026-09-17T12:19:03.314Z]     "branch": "main",
+[2026-09-17T12:19:03.314Z]     "notice": "\u53d1\u5e03\u5931\u8d25 activity-rpc",
+[2026-09-17T12:19:03.314Z]     "detail": "\u670d\u52a1=activity-rpc, \u7c7b\u578b=rpc, Harbor\u9879\u76ee=ugame, \u5206\u652f=main, \u73af\u5883=test, \u5b8c\u6210\u65f6\u95f4=2026-09-17 20:19:02 +0800",
+[2026-09-17T12:19:03.314Z]     "commit": "0050833d4f31",
+[2026-09-17T12:19:03.314Z]     "commit_full": "0050833d4f31c622238fd452d52ac6b55f31c48f",
+[2026-09-17T12:19:03.314Z]     "commit_message": "fix(activity): render all recharge categories as any method",
+[2026-09-17T12:19:03.314Z]     "author": "infi",
+[2026-09-17T12:19:03.314Z]     "image": "harbor.ugmid888.com/ugame/activity-rpc:activity-rpc-main-20260917201845-a098e4da-0050833d4f31",
+[2026-09-17T12:19:03.314Z]     "jenkins": "https://ugjekins.ugmid888.com/job/activity-rpc-testa/717/",
+[2026-09-17T12:19:03.314Z]     "job_name": "activity-rpc-testa",
+[2026-09-17T12:19:03.314Z]     "build_number": "717",
+[2026-09-17T12:19:03.314Z]     "node_name": "eks-agent1",
+[2026-09-17T12:19:03.314Z]     "duration": "18 sec and counting",
+[2026-09-17T12:19:03.314Z]     "environment": "test",
+[2026-09-17T12:19:03.314Z]     "finish_time": "2026-09-17 20:19:02 +0800"
+[2026-09-17T12:19:03.314Z] }
+[2026-09-17T12:19:03.314Z] ========== Call Webhook ==========
+[2026-09-17T12:19:03.314Z] WEBHOOK_URL=https://weebhook.ugtest888.com/webhook
+[2026-09-17T12:19:04.242Z] Webhook HTTP Code: 200
+[2026-09-17T12:19:04.242Z] Webhook Response:
+[2026-09-17T12:19:04.242Z] {"message":"sent","ok":true}
+[Pipeline] }
+[Pipeline] // script
+[Pipeline] }
+[Pipeline] // stage
+[Pipeline] }
+[Pipeline] // timestamps
+[Pipeline] }
+[Pipeline] // withEnv
+[Pipeline] }
+[Pipeline] // node
+[Pipeline] End of Pipeline
+ERROR: script returned exit code 1
+Finished: FAILURE

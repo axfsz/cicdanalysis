@@ -1,0 +1,63 @@
+[2026-09-28T08:38:26.739Z]   - openinstall_flutter_plugin
+[2026-09-28T08:38:26.739Z]   - saver_gallery
+[2026-09-28T08:38:26.739Z] This will become an error in a future version of Flutter. Please contact the plugin maintainers to request Swift Package Manager adoption.
+[2026-09-28T08:38:27.976Z] Running pod install...                                             764ms
+[2026-09-28T08:39:17.434Z] Running Xcode build...                                          
+[2026-09-28T08:39:17.434Z] Xcode archive done.                                         47.0s
+[2026-09-28T08:39:17.434Z] Failed to build iOS app
+[2026-09-28T08:39:17.434Z] Error output from Xcode build:
+[2026-09-28T08:39:17.434Z] ↳
+[2026-09-28T08:39:17.434Z]     ** ARCHIVE FAILED **
+[2026-09-28T08:39:17.434Z] 
+[2026-09-28T08:39:17.434Z]        |         `- note: in file included from <module-includes>:2:
+[2026-09-28T08:39:17.434Z]      3 | #import "/Users/ec2-user/data/jenkins/workspace/testa-ug-app-ios/ios/Flutter/ephemeral/Packages/.packages/video_player_avfoundation-2.11.0/Sources/video_player_avfoundation_objc/include/video_player_avfoundation_objc/FVPAssetProvider.h"
+[2026-09-28T08:39:17.434Z]      4 | #import "/Users/ec2-user/data/jenkins/workspace/testa-ug-app-ios/ios/Flutter/ephemeral/Packages/.packages/video_player_avfoundation-2.11.0/Sources/video_player_avfoundation_objc/include/video_player_avfoundation_objc/FVPDisplayLink.h"
+[2026-09-28T08:39:17.434Z] 
+[2026-09-28T08:39:17.434Z]     1 warning generated.
+[2026-09-28T08:39:17.434Z]     /Users/ec2-user/data/jenkins/workspace/testa-ug-app-ios/ios/Flutter/ephemeral/Packages/.packages/video_player_avfoundation-2.11.0/Sources/video_player_avfoundation_objc/include/video_player_avfoundation_objc/FVPAVFactory.h:38:4: warning: 'AVKeyValueStatus' is deprecated: first deprecated in iOS 16.0 - Use AVAsyncProperty.Status instead
+[2026-09-28T08:39:17.434Z]      36 | 
+[2026-09-28T08:39:17.434Z]      37 | /// Wraps the underlying asset's statusOfValueForKey:error: method.
+[2026-09-28T08:39:17.434Z]      38 | - (AVKeyValueStatus)statusOfValueForKey:(NSString *)key
+[2026-09-28T08:39:17.434Z]         |    `- warning: 'AVKeyValueStatus' is deprecated: first deprecated in iOS 16.0 - Use AVAsyncProperty.Status instead
+[2026-09-28T08:39:17.434Z]      39 |                                   error:(NSError *_Nullable *_Nullable)outError;
+[2026-09-28T08:39:17.434Z]      40 | 
+[2026-09-28T08:39:17.434Z] 
+[2026-09-28T08:39:17.434Z]                                                                          ASWebAuthenticationSession
+[2026-09-28T08:39:17.434Z]     /Users/ec2-user/.pub-cache/hosted/pub.dev/flutter_inappwebview_ios-1.1.2/ios/Classes/InAppWebView/WebViewChannelDelegate.swift:261:22: warning: 'clearCache()' is deprecated: Use InAppWebViewManager.clearAllCache instead.
+[2026-09-28T08:39:17.434Z]                 webView?.clearCache()
+[2026-09-28T08:39:17.434Z]                          ^
+[2026-09-28T08:39:17.434Z]     /* com.apple.ibtool.document.warnings */
+[2026-09-28T08:39:17.435Z]     /Users/ec2-user/.pub-cache/hosted/pub.dev/flutter_inappwebview_ios-1.1.2/ios/Storyboards/WebView.storyboard:global: warning: This file is set to build for a version older than the deployment target. Functionality may be limited. [9]
+[2026-09-28T08:39:17.435Z]     lib/core/router/app_router.dart:256:13: Error: No named parameter with the name 'platformName'.
+[2026-09-28T08:39:17.435Z]                 platformName: args['platformName'] as String? ?? '',
+[2026-09-28T08:39:17.435Z]                 ^^^^^^^^^^^^
+[2026-09-28T08:39:17.435Z]     lib/features/game/view/game_view_view.dart:30:9: Context: Found this candidate, but the arguments don't match.
+[2026-09-28T08:39:17.435Z]       const GameViewView({
+[2026-09-28T08:39:17.435Z]             ^^^^^^^^^^^^
+[2026-09-28T08:39:17.435Z]     Target kernel_snapshot_program failed: Exception
+[2026-09-28T08:39:17.435Z]     Failed to package /Users/ec2-user/data/jenkins/workspace/testa-ug-app-ios.
+[2026-09-28T08:39:17.435Z]     Command PhaseScriptExecution failed with a nonzero exit code
+[2026-09-28T08:39:17.435Z]     note: Run script build phase 'Run Script' will be run during every build because the option to run the script phase "Based on dependency analysis" is unchecked. (in target 'Runner' from project 'Runner')
+[2026-09-28T08:39:17.435Z]     note: Run script build phase 'Thin Binary' will be run during every build because the option to run the script phase "Based on dependency analysis" is unchecked. (in target 'Runner' from project 'Runner')
+[2026-09-28T08:39:17.435Z]     /Users/ec2-user/data/jenkins/workspace/testa-ug-app-ios/ios/Pods/Pods.xcodeproj: warning: The iOS deployment target 'IPHONEOS_DEPLOYMENT_TARGET' is set to 11.0, but the range of supported deployment target versions is 12.0 to 26.2.99. (in target 'saver_gallery-saver_gallery' from project 'Pods')
+[2026-09-28T08:39:17.435Z]     /Users/ec2-user/data/jenkins/workspace/testa-ug-app-ios/ios/Pods/Pods.xcodeproj: warning: The iOS deployment target 'IPHONEOS_DEPLOYMENT_TARGET' is set to 9.0, but the range of supported deployment target versions is 12.0 to 26.2.99. (in target 'fluttertoast-fluttertoast_privacy' from project 'Pods')
+[2026-09-28T08:39:17.435Z]     /Users/ec2-user/data/jenkins/workspace/testa-ug-app-ios/ios/Pods/Pods.xcodeproj: warning: The iOS deployment target 'IPHONEOS_DEPLOYMENT_TARGET' is set to 9.0, but the range of supported deployment target versions is 12.0 to 26.2.99. (in target 'libOpenInstallSDK' from project 'Pods')
+[2026-09-28T08:39:17.435Z] 
+[2026-09-28T08:39:17.435Z] Encountered error while archiving for device.
+[2026-09-28T08:39:17.435Z] 
+[2026-09-28T08:39:17.435Z] flutter_build.sh exit code=1
+[2026-09-28T08:39:17.435Z] 
+[2026-09-28T08:39:17.435Z] ERROR: Flutter iOS 构建失败
+[Pipeline] }
+[Pipeline] // stage
+[Pipeline] stage
+[Pipeline] { (读取构建结果)
+Stage "读取构建结果" skipped due to earlier failure(s)
+[Pipeline] // timestamps
+[Pipeline] }
+[Pipeline] // withEnv
+[Pipeline] }
+[Pipeline] // node
+[Pipeline] End of Pipeline
+ERROR: script returned exit code 1
+Finished: FAILURE
