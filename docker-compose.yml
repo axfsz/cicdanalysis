@@ -1,0 +1,39 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-cicdanalysis}
+      POSTGRES_USER: ${POSTGRES_USER:-cicdanalysis}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-replace-with-a-strong-password}
+      TZ: ${APP_TIMEZONE:-Asia/Kuala_Lumpur}
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+
+  cicdanalysis:
+    build: .
+    env_file: .env
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER:-cicdanalysis}:${POSTGRES_PASSWORD:-replace-with-a-strong-password}@postgres:5432/${POSTGRES_DB:-cicdanalysis}
+      TELEGRAM_LISTEN_GROUP_MESSAGES: ${TELEGRAM_LISTEN_GROUP_MESSAGES:-true}
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    ports: ["8080:8080"]
+    volumes:
+      - cicd-data:/data   # Telegram user-account session (telegram-login)
+    healthcheck:
+      test: ["CMD","python3","-c","import urllib.request; urllib.request.urlopen('http://127.0.0.1:8080/readyz')"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+volumes:
+  postgres-data: {}
+  cicd-data: {}

@@ -212,6 +212,8 @@ LLM_API_KEY=<在 DeepSeek 控制台创建>
 LLM_MODEL=deepseek-chat
 ```
 
+已有 `.env` 里用的是 `AI_API_KEY` / `AI_BASE_URL` / `AI_MODEL` / `AI_MAX_TOKENS` 也可以直接生效（同时配置时以 `LLM_*` 为准）。启动日志会打印 `LLM root-cause analysis: enabled (...)` 或 `disabled`。
+
 核对某次失败的分析结果（会重新拉日志、重新分析并覆盖该构建的结论，不发群）：
 
 ```bash

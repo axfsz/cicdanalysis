@@ -1,0 +1,12 @@
+[project]
+name = "cicdanalysis"
+version = "0.7.4"
+description = "Jenkins build intelligence and Telegram reporting"
+requires-python = ">=3.11"
+dependencies = ["psycopg[binary]>=3.2,<4"]
+
+[project.optional-dependencies]
+telegram-user = ["telethon>=1.36,<2"]
+
+[tool.setuptools]
+packages = ["cicdanalysis"]
