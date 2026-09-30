@@ -2,7 +2,8 @@
 import os
 import tempfile
 import unittest
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
+from zoneinfo import ZoneInfo
 
 from cicdanalysis.analyzer import analyze
 from cicdanalysis.app import App
@@ -187,11 +188,13 @@ class LinkingTests(unittest.TestCase):
         self.assertEqual(self.trigger_user()["display_name"], "Infi")
 
     def test_report_counts_trigger_user_in_uat(self):
-        self.app.handle_update(update(UAT_TRIGGER, UAT))
+        # Trigger a minute before "now" so the build number path (3-hour look-back) finds it on any date.
+        triggered = (datetime.now(ZoneInfo(TZ)) - timedelta(minutes=1)).strftime("%Y-%m-%d %H:%M:%S")
+        self.app.handle_update(update(UAT_TRIGGER.replace("2026-09-28 21:01:59", triggered), UAT))
         job_id = self.job_id()
         now = datetime.now(timezone.utc).isoformat()
         build_id, _ = self.app.db.save_build(job_id, build(228, now))
-        # triggered_at is fixed in the message; use the build number path to link.
+        # Link through the build number path, as a Jenkins result message would.
         self.app.db.link_pending_trigger(job_id, 228, now)
         summary = self.app.reports.overview_days(1, "uat")
         self.assertEqual(summary["users"][0]["name"], "Infi")
