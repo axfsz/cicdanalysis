@@ -35,6 +35,9 @@ docker compose up -d --build
 curl http://127.0.0.1:8080/healthz
 ```
 
+Compose 默认只把 8080 发布到本机 `127.0.0.1`。需要从其他机器访问时，优先在前面放反向代理（HTTPS）；
+确需直接暴露时在 `.env` 设置 `APP_PUBLISH_ADDR=0.0.0.0`。
+
 启动后包含 `cicdanalysis` 和 `postgres` 两个容器。查看状态：
 
 ```bash
@@ -42,7 +45,7 @@ docker compose ps
 docker compose logs -f cicdanalysis
 ```
 
-访问：
+访问（除健康检查和 `/metrics` 外都需要 `READ_API_TOKEN`；浏览器会弹出登录框，用户名任意，密码填 `READ_API_TOKEN`）：
 
 - `http://127.0.0.1:8080/`：统计面板
 - `http://127.0.0.1:8080/docs`：Swagger UI 交互式接口文档
@@ -73,6 +76,10 @@ python3 -m unittest discover -s tests -v
 | `TELEGRAM_BOT_TOKEN` | Telegram Bot Token |
 | `TELEGRAM_LISTEN_GROUP_MESSAGES` | 是否监听发布群触发结果，默认 `true` |
 | `WEBHOOK_SECRET` | Jenkins webhook Bearer Token |
+| `READ_API_TOKEN` | 统计面板、`/api/v1/*` 查询接口、接口文档的只读 Token。未设置时这些地址一律返回 401 |
+| `PUBLIC_HEALTH` | `/healthz`、`/readyz` 是否免 Token，默认 `true`（Compose / K8s 探针依赖它） |
+| `PUBLIC_METRICS` | `/metrics` 是否免 Token，默认 `true`；设为 `false` 后 Prometheus 需配置 Bearer Token |
+| `APP_PUBLISH_ADDR` | 仅 Compose：宿主机发布地址，默认 `127.0.0.1` |
 
 三个群默认值已按需求写入 `.env.example` 和 K8s ConfigMap，可通过环境变量覆盖。
 

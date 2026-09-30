@@ -22,7 +22,7 @@ def openapi_spec() -> dict:
             }
         },
     }
-    return {
+    spec = {
         "openapi": "3.0.3",
         "info": {
             "title": "cicdanalysis API",
@@ -36,8 +36,10 @@ def openapi_spec() -> dict:
                 "- 日、周、月边界使用服务的 `APP_TIMEZONE`，默认 `Asia/Kuala_Lumpur`。\n"
                 "- 触发人只表示谁发起构建；故障责任由 `responsibility_type` 单独表示。\n\n"
                 "### 鉴权\n"
-                "查询接口当前仅建议在内网开放。Jenkins Webhook 必须使用 "
-                "`Authorization: Bearer <WEBHOOK_SECRET>`。"
+                "统计面板、查询接口和接口文档必须携带 `READ_API_TOKEN`："
+                "`Authorization: Bearer <READ_API_TOKEN>`，或浏览器 Basic 认证（用户名任意，密码为 READ_API_TOKEN）。"
+                "`/healthz`、`/readyz`、`/metrics` 默认无需鉴权，可用 `PUBLIC_HEALTH` / `PUBLIC_METRICS` 设为 `false` 后同样要求该 Token。"
+                "Jenkins Webhook 必须使用 `Authorization: Bearer <WEBHOOK_SECRET>`。"
             ),
             "contact": {"name": "CI/CD Platform Team"},
         },
@@ -283,6 +285,14 @@ def openapi_spec() -> dict:
                     "bearerFormat": "WEBHOOK_SECRET",
                     "description": "部署环境变量 WEBHOOK_SECRET 的值。",
                 },
+                "ReadBearer": {
+                    "type": "http", "scheme": "bearer", "bearerFormat": "READ_API_TOKEN",
+                    "description": "查询接口只读 Token，部署环境变量 READ_API_TOKEN 的值。",
+                },
+                "ReadBasic": {
+                    "type": "http", "scheme": "basic",
+                    "description": "浏览器访问统计面板时使用：用户名任意，密码为 READ_API_TOKEN。",
+                },
                 "TriggerBearer": {
                     "type": "http", "scheme": "bearer", "bearerFormat": "TRIGGER_WEBHOOK_SECRET",
                     "description": "触发面板专用密钥；未配置时兼容使用 WEBHOOK_SECRET。",
@@ -291,6 +301,12 @@ def openapi_spec() -> dict:
             "schemas": _schemas(),
         },
     }
+    unauthorized = {"description": "READ_API_TOKEN 缺失或不正确", "content": {"application/json": {"schema": {"$ref": "#/components/schemas/Error"}}}}
+    for path, item in spec["paths"].items():
+        if path.startswith("/api/v1/") and "get" in item:
+            item["get"]["security"] = [{"ReadBearer": []}, {"ReadBasic": []}]
+            item["get"]["responses"]["401"] = unauthorized
+    return spec
 
 
 def _query_parameter(name, description, value_type, default, **constraints):

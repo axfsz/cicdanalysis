@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import base64
+import binascii
 import hmac
 import json
 import logging
@@ -11,6 +13,20 @@ from .db import Database
 from .openapi import VERSION, openapi_json, redoc_html, swagger_ui_html
 
 log = logging.getLogger(__name__)
+
+HEALTH_PATHS = {"/healthz", "/readyz"}
+
+
+def read_token_ok(header: str, token: str) -> bool:
+    """Accept `Bearer <token>` (scripts) or HTTP Basic with the token as password (browsers, any username)."""
+    if not token: return False
+    scheme,_,value=header.partition(" "); scheme=scheme.lower(); value=value.strip()
+    if scheme=="bearer": supplied=value
+    elif scheme=="basic":
+        try: supplied=base64.b64decode(value,validate=True).decode("utf-8").partition(":")[2]
+        except (binascii.Error,UnicodeDecodeError): return False
+    else: return False
+    return hmac.compare_digest(supplied.encode(),token.encode())
 
 DASHBOARD = """<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>cicdanalysis</title><style>:root{color-scheme:dark}body{font:14px system-ui;margin:0;background:#07111f;color:#dbeafe}.wrap{max-width:1200px;margin:auto;padding:28px}
@@ -39,6 +55,11 @@ def handler_factory(app):
             return value
         def do_GET(self):
             p=urlparse(self.path); q=parse_qs(p.query)
+            public=(app.config.public_health and p.path in HEALTH_PATHS) or (app.config.public_metrics and p.path=="/metrics")
+            if not public and not read_token_ok(self.headers.get("Authorization",""),app.config.read_api_token):
+                raw=json.dumps({"error":"unauthorized"}).encode(); self.send_response(401)
+                self.send_header("WWW-Authenticate",'Basic realm="cicdanalysis", charset="UTF-8"')
+                self.send_header("Content-Type","application/json; charset=utf-8"); self.send_header("Content-Length",str(len(raw))); self.end_headers(); self.wfile.write(raw); return
             if p.path=="/healthz": return self.send_json({"status":"ok","version":VERSION})
             if p.path=="/readyz":
                 ready=app.db.ping();return self.send_json({"status":"ok" if ready else "not_ready","version":VERSION},200 if ready else 503)
@@ -122,4 +143,5 @@ def handler_factory(app):
 
 
 def serve(app):
+    if not app.config.read_api_token: log.warning("READ_API_TOKEN is not set: dashboard, /api/v1 queries and API docs will answer 401")
     server=ThreadingHTTPServer((app.config.host,app.config.port),handler_factory(app)); log.info("listening on %s:%s",app.config.host,app.config.port); server.serve_forever()

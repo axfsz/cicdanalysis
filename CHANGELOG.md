@@ -1,5 +1,14 @@
 # Changelog
 
+## Unreleased
+
+- 统计面板、`/api/v1/*` 查询接口和接口文档新增只读 Token 鉴权（`READ_API_TOKEN`）：
+  脚本用 `Authorization: Bearer <token>`，浏览器用 Basic 认证（用户名任意，密码为 Token）。
+  **升级必读**：未设置 `READ_API_TOKEN` 时这些地址返回 401，之前它们无需鉴权即可读取触发人和 Telegram 用户名。
+- `/healthz`、`/readyz`、`/metrics` 默认仍免鉴权，可用 `PUBLIC_HEALTH=false` / `PUBLIC_METRICS=false` 改为需要 Token。
+- docker-compose 默认只把 8080 发布到 `127.0.0.1`；需要对外时设置 `APP_PUBLISH_ADDR=0.0.0.0`。
+- 修复 `test_report_counts_trigger_user_in_uat` 依赖当天日期（2026-09-28 之后必然失败）。
+
 ## 0.7.4
 
 - 大模型配置兼容 `AI_API_KEY` / `AI_BASE_URL` / `AI_MODEL` / `AI_MAX_TOKENS`（同时存在时 `LLM_*` 优先，空值会跳过）；
