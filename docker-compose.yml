@@ -26,7 +26,8 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
-    ports: ["8080:8080"]
+    # Loopback only by default; put a reverse proxy in front, or set APP_PUBLISH_ADDR=0.0.0.0 to expose it.
+    ports: ["${APP_PUBLISH_ADDR:-127.0.0.1}:8080:8080"]
     volumes:
       - cicd-data:/data   # Telegram user-account session (telegram-login)
     healthcheck:

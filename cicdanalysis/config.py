@@ -68,6 +68,10 @@ class Config:
     notify_failures: bool = _bool("TELEGRAM_NOTIFY_FAILURES", True)
     webhook_secret: str = os.getenv("WEBHOOK_SECRET", "")
     trigger_webhook_secret: str = os.getenv("TRIGGER_WEBHOOK_SECRET", os.getenv("WEBHOOK_SECRET", ""))
+    # Read (GET) endpoints: dashboard, /api/v1/*, API docs. Unset means every read request is rejected with 401.
+    read_api_token: str = os.getenv("READ_API_TOKEN", "")
+    public_health: bool = _bool("PUBLIC_HEALTH", True)    # /healthz, /readyz without a token (probes)
+    public_metrics: bool = _bool("PUBLIC_METRICS", True)  # /metrics without a token (Prometheus scrape)
     daily_hour: int = _int("REPORT_DAILY_HOUR", 9)
     daily_minute: int = _int("REPORT_DAILY_MINUTE", 0)
     weekly_weekday: int = _int("REPORT_WEEKLY_WEEKDAY", 0)

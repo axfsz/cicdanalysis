@@ -14,7 +14,23 @@
 
 ## 鉴权与访问控制
 
-统计查询接口当前没有应用层鉴权，应只通过内网、VPN、Ingress 白名单或 API Gateway 暴露。
+统计面板（`/`）、`/api/v1/*` 查询接口和接口文档（`/docs`、`/redoc`、`/openapi.json`）必须携带只读 Token：
+
+```http
+Authorization: Bearer <READ_API_TOKEN>
+```
+
+浏览器访问统计面板时会弹出 Basic 认证框：用户名任意，密码填 `READ_API_TOKEN`，之后面板里的查询请求自动带上凭据。
+服务端未设置 `READ_API_TOKEN` 时，上述地址一律返回 `401`。
+
+`/healthz`、`/readyz`、`/metrics` 默认无需鉴权。设置 `PUBLIC_HEALTH=false` 或 `PUBLIC_METRICS=false` 后，
+对应地址同样要求 `READ_API_TOKEN`（注意 Compose 健康检查和 K8s 探针默认不带 Token）。
+
+只读 Token 不能调用 Webhook，Webhook 仍使用各自的密钥。仍建议只通过内网、VPN、Ingress 白名单或 API Gateway 暴露服务。
+
+```bash
+curl -H "Authorization: Bearer $READ_API_TOKEN" 'http://127.0.0.1:8080/api/v1/builds?limit=20'
+```
 
 Jenkins Webhook 必须携带：
 
@@ -38,7 +54,7 @@ Content-Type: application/json
 | `200` | 查询成功 |
 | `202` | Webhook 已进入后台采集队列 |
 | `400` | 参数或 JSON 格式错误 |
-| `401` | Webhook Bearer Token 缺失或不正确 |
+| `401` | Webhook 密钥或 `READ_API_TOKEN` 缺失或不正确 |
 | `404` | 路径不存在 |
 | `413` | Webhook 请求体超过 64 KiB |
 
@@ -46,14 +62,14 @@ Content-Type: application/json
 
 | 方法 | 路径 | 用途 | 鉴权 |
 |---|---|---|---|
-| GET | `/healthz` | 存活检查 | 无 |
-| GET | `/readyz` | 就绪检查 | 无 |
-| GET | `/metrics` | Prometheus 指标 | 无 |
-| GET | `/api/v1/overview` | 构建综合概览 | 无，建议内网 |
-| GET | `/api/v1/builds` | 查询构建记录 | 无，建议内网 |
-| GET | `/api/v1/users` | 触发人构建统计 | 无，建议内网 |
-| GET | `/api/v1/failures` | 故障指纹统计 | 无，建议内网 |
-| GET | `/api/v1/triggers` | 查询触发面板事件与关联状态 | 无，建议内网 |
+| GET | `/healthz` | 存活检查 | 默认无（`PUBLIC_HEALTH=false` 时 READ_API_TOKEN） |
+| GET | `/readyz` | 就绪检查 | 默认无（`PUBLIC_HEALTH=false` 时 READ_API_TOKEN） |
+| GET | `/metrics` | Prometheus 指标 | 默认无（`PUBLIC_METRICS=false` 时 READ_API_TOKEN） |
+| GET | `/api/v1/overview` | 构建综合概览 | READ_API_TOKEN |
+| GET | `/api/v1/builds` | 查询构建记录 | READ_API_TOKEN |
+| GET | `/api/v1/users` | 触发人构建统计 | READ_API_TOKEN |
+| GET | `/api/v1/failures` | 故障指纹统计 | READ_API_TOKEN |
+| GET | `/api/v1/triggers` | 查询触发面板事件与关联状态 | READ_API_TOKEN |
 | POST | `/api/v1/webhooks/jenkins` | 接收 Jenkins 构建结束事件 | Bearer Token |
 | POST | `/api/v1/webhooks/trigger` | 接收真实 Telegram 点击者与队列/构建信息 | Bearer Token |
 | POST | `/api/v1/webhooks/release-message` | 转发发布群消息原文（触发通知/触发结果/发布通知），失败时自动分析并回复原群 | Bearer Token（TRIGGER_WEBHOOK_SECRET） |
@@ -103,7 +119,7 @@ cicdanalysis_builds_total{result="FAILURE"} 19
 请求示例：
 
 ```bash
-curl 'http://127.0.0.1:8080/api/v1/overview?date=2026-09-07&environment=prod'
+curl -H "Authorization: Bearer $READ_API_TOKEN" 'http://127.0.0.1:8080/api/v1/overview?date=2026-09-07&environment=prod'
 ```
 
 响应示例：
@@ -166,7 +182,7 @@ curl 'http://127.0.0.1:8080/api/v1/overview?date=2026-09-07&environment=prod'
 请求示例：
 
 ```bash
-curl 'http://127.0.0.1:8080/api/v1/builds?limit=20&result=FAILURE&environment=prod&trigger_user=mew'
+curl -H "Authorization: Bearer $READ_API_TOKEN" 'http://127.0.0.1:8080/api/v1/builds?limit=20&result=FAILURE&environment=prod&trigger_user=mew'
 ```
 
 响应示例：
@@ -200,7 +216,7 @@ curl 'http://127.0.0.1:8080/api/v1/builds?limit=20&result=FAILURE&environment=pr
 | `days` | integer | 否 | `30` | `1`～`365` |
 
 ```bash
-curl 'http://127.0.0.1:8080/api/v1/users?days=30'
+curl -H "Authorization: Bearer $READ_API_TOKEN" 'http://127.0.0.1:8080/api/v1/users?days=30'
 ```
 
 ```json
@@ -229,7 +245,7 @@ curl 'http://127.0.0.1:8080/api/v1/users?days=30'
 | `days` | integer | 否 | `30` | `1`～`365` |
 
 ```bash
-curl 'http://127.0.0.1:8080/api/v1/failures?days=30'
+curl -H "Authorization: Bearer $READ_API_TOKEN" 'http://127.0.0.1:8080/api/v1/failures?days=30'
 ```
 
 ```json
@@ -305,7 +321,7 @@ post {
 
 ```bash
 curl -fsS https://your-cicdanalysis-domain/healthz
-curl -fsS https://your-cicdanalysis-domain/openapi.json
+curl -fsS -H "Authorization: Bearer $READ_API_TOKEN" https://your-cicdanalysis-domain/openapi.json
 ```
 
 浏览器打开：
