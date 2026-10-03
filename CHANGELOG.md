@@ -1,5 +1,51 @@
 # Changelog
 
+## 0.8.0
+
+### 批量发布触发人识别
+- 识别“🚀 Jenkins 批量发布触发通知”（以及“批量发布触发结果”）：标题中多了“批量”，且服务以 `• <job>` 列表给出、没有“触发项目”，
+  0.7.x 无法解析，批量发布的构建全部落入“自动触发”。现在每个服务生成一条触发记录（同一 `batch_id`），按 Job + 触发时间
+  或行内的构建/队列地址关联到各自的 Jenkins 构建。列表之后的“构建面板”文本会被忽略。
+- `trigger_events` 新增 `trigger_mode`（SINGLE/BATCH）、`batch_id`、`batch_size`（自动迁移）。
+- 触发时间统一按 UTC 存储（SQLite 下带 `+08:00` 的时间与 UTC 日期边界做文本比较会漏掉晚间记录）。
+- Jenkins 触发原因细分：`TIMER` / `SCM` / `UPSTREAM` 才算自动构建；`REMOTE`（发布机器人调用 buildWithParameters）、
+  服务账号等没有关联到人的构建统计为“未识别触发人”，不再混进“自动触发”。
+
+### 失败自动分析与推送
+- 修复：失败构建几乎不会自动推送分析、只能手动 `/analyze`。原因是 Jenkinsfile 的 post 步骤先发“❌ Jenkins 发布通知”
+  （“耗时: 49 sec and counting”），此时 Jenkins 仍报告构建运行中，服务不分析；等构建结束后轮询再看到它时，
+  旧的推送条件“本次变为最终态且构建号大于 last_build_number”已不成立（运行中那次采集已更新了 last_build_number）。
+- 新规则：失败（FAILURE/UNSTABLE）构建只要已分析、尚未推送、且结束于 `FAILURE_NOTIFY_MAX_AGE_MINUTES`（默认 180）分钟内，
+  就自动推送一次；webhook / 群内发布通知指定的构建不受时间限制。历史回灌的旧失败仍只入库不推送。
+- 发布通知或 webhook 到达时构建仍在运行：每 `FOLLOW_UP_SECONDS`（默认 15）秒重查，直到结束后立刻分析推送（最多 `FOLLOW_UP_MAX_MINUTES`）。
+- 日志读取失败时不再跳过推送：下次轮询重新分析后照常推送。
+- `failure_notifications` 新增 `source`：AUTO（自动）/ MANUAL（CLI `analyze --send`）/ COMMAND（群内 `/analyze`）。
+  `/analyze` 在构建所属群发出完整报告后记为已推送，自动流程不再重复发送。
+- ABORTED 默认不推送（`TELEGRAM_NOTIFY_ABORTED=true` 可开启）。
+
+### 统计面板与报告
+- 新增“失败自动分析”面板：每个失败构建的触发人、分类与根因、推送方式（自动 / `/analyze` / 手动 / 未推送）及自动推送延迟。
+- 新增卡片：批量发布（构建数 / 批量指令数）、自动触发、未识别触发人、失败自动推送（自动推送数 / 失败数，平均延迟）。
+- “触发人构建情况”新增“批量”列，“自动触发”与“未识别触发人”分开显示；“最近触发记录”新增时间与方式（单个 / 批量 N）。
+- 未关联提示只统计未识别触发人的构建，不含定时/SCM/上游构建；面板每 60 秒自动刷新。
+- `/api/v1/overview` 新增 `automatic`、`batch_builds`、`batch_messages`、`analysis`；`/api/v1/triggers` 新增 `trigger_mode`、`batch_id`、`batch_size`。
+- Telegram 日/周/月报增加批量发布、自动触发与“失败自动分析”统计。
+
+## 0.7.6
+
+- 发布群内新增 `/analyze` 命令：列出本群环境今天失败的构建（最近优先、每个 Job 取最近一次、最多 5 个，标注“已恢复”），
+  并附最近一次失败的完整报告；`/analyze <job|服务名> [构建号]` 查看单个构建。只对尚未分析的构建调用 Jenkins 与大模型。
+- Bot 轮询在 `TELEGRAM_LISTEN_GROUP_MESSAGES=false` 时也会启动以接收命令（`TELEGRAM_COMMANDS=false` 可关闭），
+  启动时向 Telegram 注册命令菜单。命令只在三个发布群与管理群内生效，同一群同时只跑一个 /analyze。
+
+## 0.7.5
+
+- `analyze` 新增 `--send group|management|<chat_id>` 与 `--dry-run`：手动发送或预览某个构建的分析报告；
+  发到发布群时回复该群的“❌ Jenkins 发布通知”，并记为已发送，自动流程不会再发第二次。
+- `analyze` 遇到库里还没有的构建时，采集过程不再自动发群，是否发送只由 `--send` 决定。
+- 错误指纹彻底去掉时间戳：Pipeline 步骤日志里带缩进或 BOM 的 `[2026-..T..Z]` 前缀、以及行内的 ISO 时间都会先去掉
+  （0.7.4 中 #111 的 normalized_error 仍带时间戳，导致同一错误在不同构建上指纹不同、大模型结论无法复用）。
+
 ## 0.7.4
 
 - 大模型配置兼容 `AI_API_KEY` / `AI_BASE_URL` / `AI_MODEL` / `AI_MAX_TOKENS`（同时存在时 `LLM_*` 优先，空值会跳过）；

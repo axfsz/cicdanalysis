@@ -161,6 +161,11 @@ MIGRATIONS = [
     ("build_failures", "error_excerpt", "TEXT"),
     ("build_failures", "analysis_source", "TEXT"),
     ("build_failures", "analysis_model", "TEXT"),
+    # 0.8.0: batch trigger notices and how each failure report was delivered
+    ("trigger_events", "trigger_mode", "TEXT"),
+    ("trigger_events", "batch_id", "TEXT"),
+    ("trigger_events", "batch_size", "INTEGER"),
+    ("failure_notifications", "source", "TEXT"),
 ]
 
 
@@ -266,8 +271,8 @@ class Database:
         with self.connect() as c:
             c.execute("""INSERT INTO trigger_events(event_id,job_id,build_number,queue_id,trigger_user_id,trigger_source,
               telegram_chat_id,branch,service_type,service_name,namespace,environment,trigger_status,http_status,
-              queue_url,build_url,triggered_at,raw_payload,created_at,updated_at)
-              VALUES(?,?,?,?,?,'TELEGRAM_PANEL',?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+              queue_url,build_url,triggered_at,raw_payload,trigger_mode,batch_id,batch_size,created_at,updated_at)
+              VALUES(?,?,?,?,?,'TELEGRAM_PANEL',?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
               ON CONFLICT(event_id) DO UPDATE SET build_number=COALESCE(excluded.build_number,trigger_events.build_number),
               queue_id=COALESCE(excluded.queue_id,trigger_events.queue_id),trigger_user_id=excluded.trigger_user_id,
               telegram_chat_id=COALESCE(NULLIF(excluded.telegram_chat_id,''),trigger_events.telegram_chat_id),
@@ -276,11 +281,15 @@ class Database:
               http_status=COALESCE(excluded.http_status,trigger_events.http_status),
               queue_url=COALESCE(NULLIF(excluded.queue_url,''),trigger_events.queue_url),
               build_url=COALESCE(NULLIF(excluded.build_url,''),trigger_events.build_url),
+              trigger_mode=COALESCE(excluded.trigger_mode,trigger_events.trigger_mode),
+              batch_id=COALESCE(NULLIF(excluded.batch_id,''),trigger_events.batch_id),
+              batch_size=COALESCE(excluded.batch_size,trigger_events.batch_size),
               raw_payload=excluded.raw_payload,updated_at=excluded.updated_at""",
               (event["event_id"],job_id,event.get("build_number"),event.get("queue_id"),user_id,
                event.get("telegram_chat_id"),event.get("branch"),event.get("service_type"),event.get("service_name"),
                event.get("namespace"),event.get("environment"),event.get("status"),event.get("http_status"),
-               event.get("queue_url"),event.get("build_url"),event["triggered_at"],event.get("raw_payload"),ts,ts))
+               event.get("queue_url"),event.get("build_url"),event["triggered_at"],event.get("raw_payload"),
+               event.get("trigger_mode") or "SINGLE",event.get("batch_id") or "",event.get("batch_size") or 1,ts,ts))
             trigger_id = c.execute("SELECT id FROM trigger_events WHERE event_id=?", (event["event_id"],)).fetchone()["id"]
             conditions=[]; params=[]
             if event.get("build_number") is not None:
@@ -365,11 +374,14 @@ class Database:
           WHERE job_id=? AND build_number=? ORDER BY id DESC LIMIT 1""",(job_id,build_number))
         return rows[0] if rows else None
 
-    def claim_failure_notification(self, build_id: int, chat_id: str) -> bool:
-        """Reserve the single failure report for a build; False if already sent or in flight."""
+    def claim_failure_notification(self, build_id: int, chat_id: str, source: str = "AUTO") -> bool:
+        """Reserve the single failure report for a build; False if already sent or in flight.
+
+        ``source``: AUTO (automatic report), MANUAL (CLI analyze --send) or COMMAND (/analyze in the group).
+        """
         with self.connect() as c:
-            cur=c.execute("""INSERT INTO failure_notifications(build_id,chat_id,sent_at) VALUES(?,?,?)
-              ON CONFLICT(build_id) DO NOTHING""",(build_id,str(chat_id),now()))
+            cur=c.execute("""INSERT INTO failure_notifications(build_id,chat_id,sent_at,source) VALUES(?,?,?,?)
+              ON CONFLICT(build_id) DO NOTHING""",(build_id,str(chat_id),now(),source))
             return (cur.rowcount or 0) > 0
 
     def release_failure_notification(self, build_id: int) -> None:
@@ -422,6 +434,9 @@ class Database:
                failure["root_cause"], failure["suggestion"], failure["responsibility_type"],
                failure["error_fingerprint"], failure["confidence"], failure.get("normalized_error"), failure.get("error_excerpt"),
                failure.get("analysis_source") or "RULE", failure.get("analysis_model"), now()))
+
+    def failure_notified(self, build_id: int) -> bool:
+        return bool(self.query("SELECT id FROM failure_notifications WHERE build_id=? LIMIT 1", (build_id,)))
 
     def has_failure(self, build_id: int) -> bool:
         return bool(self.query("SELECT id FROM build_failures WHERE build_id=? LIMIT 1", (build_id,)))

@@ -214,8 +214,8 @@ class GroupFailureEndToEndTests(unittest.TestCase):
         FakeModel.requests.clear(); FakeModel.status = 200
         tmp = tempfile.TemporaryDirectory(); self.addCleanup(tmp.cleanup)
         config = Config(database_path=os.path.join(tmp.name, "a.db"), database_url="", jenkins_url="https://ugjekins.ugmid888.com",
-                        jenkins_token="t", llm_api_key="sk", llm_base_url=f"http://127.0.0.1:{self.server.server_port}/v1")
-        app = App(config)
+                        jenkins_token="t", telegram_token="bot", llm_api_key="sk", llm_base_url=f"http://127.0.0.1:{self.server.server_port}/v1")
+        app = self.app = App(config)
         jenkins = FakeJenkins()
         jenkins.jobs = lambda: [{"name": n, "url": f"https://ugjekins.ugmid888.com/job/{n}/"} for n in jobs]
         jenkins.console = lambda url, number, size: jenkins.console_calls.append((url, number)) or IOS_CONSOLE
@@ -246,6 +246,27 @@ class GroupFailureEndToEndTests(unittest.TestCase):
         result, jenkins, sent = self.run_flow(text, ["testa-ug-app-ios", "uat-ug-app-ios-prod"])
         self.assertEqual(result["job_name"], "testa-ug-app-ios")
         self.assertEqual(len(sent), 1)
+
+    def test_manual_send_preview_and_management_chat(self):
+        from cicdanalysis.__main__ import send_report
+        result, jenkins, sent = self.run_flow(IOS_FAILED, ["testa-ug-app-ios"])
+        app = self.app
+        sent.clear()
+        # Preview: nothing is sent, target is the group message the failure was announced in.
+        preview = send_report(app, app.config, "testa-ug-app-ios", 111, "group", True)
+        self.assertIn("chat_id=-1003919548725 reply_to=555", preview)
+        self.assertIn("testa-ug-app-ios</b> #111", preview)
+        self.assertEqual(sent, [])
+        # Explicit resend to the group ignores the once-per-build guard.
+        send_report(app, app.config, "testa-ug-app-ios", 111, "group", False)
+        self.assertEqual(sent[-1][0::2], ("-1003919548725", 555))
+        # Another chat gets a plain message (no reply to a group message id).
+        send_report(app, app.config, "testa-ug-app-ios", 111, "-100999", False)
+        self.assertEqual(sent[-1][0::2], ("-100999", None))
+        with self.assertRaises(SystemExit):
+            send_report(app, app.config, "testa-ug-app-ios", 111, "management", False)
+        with self.assertRaises(SystemExit):
+            send_report(app, app.config, "testa-ug-app-ios", 999, "group", True)
 
 
 class MobileRuleTests(unittest.TestCase):
@@ -348,3 +369,14 @@ class LLMConfigAliasTests(unittest.TestCase):
         llm = LLMAnalyzer("https://api.deepseek.com/chat/completions", " sk ", "deepseek-chat")
         self.assertEqual(llm.base_url, "https://api.deepseek.com")
         self.assertEqual(llm.api_key, "sk")
+
+
+class TimestampFingerprintTests(unittest.TestCase):
+    def test_step_log_timestamps_never_reach_the_fingerprint(self):
+        line = "lib/core/router/app_router.dart:256:13: Error: No named parameter with the name 'platformName'."
+        a = analyze("", focus=f"  [2026-09-28T08:39:17.435Z] {line}")
+        b = analyze("", focus=f"\ufeff[2026-09-29T11:02:03.001+08:00]{line}")
+        c = analyze("", focus=line)
+        self.assertNotIn("28T", a["normalized_error"])
+        self.assertEqual(a["error_fingerprint"], c["error_fingerprint"])
+        self.assertEqual(b["error_fingerprint"], c["error_fingerprint"])
