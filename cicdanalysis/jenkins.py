@@ -135,6 +135,24 @@ def infer_job(job_name: str, job_url: str = "") -> dict:
             "service_type": service_type, "environment": environment, "namespace": environment}
 
 
+# Build causes that really start a build without a person behind it.
+AUTOMATIC_SOURCES = ("TIMER", "SCM", "UPSTREAM")
+
+
+def cause_source(causes: list[dict]) -> str:
+    """Classify a build started without a user cause.
+
+    Release bots usually call buildWithParameters (RemoteCause / API token), which is a
+    person's release, not an automatic build; only timers, SCM/webhook pushes and
+    upstream jobs count as automatic.
+    """
+    text = " ".join(f"{c.get('_class', '')} {c.get('shortDescription', '')}" for c in causes).lower()
+    if "timer" in text: return "TIMER"
+    if "remote" in text: return "REMOTE"
+    if any(k in text for k in ("scm", "push", "branch indexing", "branchevent", "gitlab", "github", "webhook", "gerrit")): return "SCM"
+    return "OTHER"
+
+
 def parse_build(data: dict) -> dict:
     actions = data.get("actions") or []
     params, causes = {}, []
@@ -143,7 +161,7 @@ def parse_build(data: dict) -> dict:
         causes.extend(a.get("causes") or [])
     user_cause = next((c for c in causes if c.get("userId") or c.get("userName") or "started by user" in str(c.get("shortDescription","")).lower()), {})
     upstream = next((c for c in causes if c.get("upstreamProject")), {})
-    trigger_source = "USER" if user_cause else "UPSTREAM" if upstream else "SCM" if causes else "UNKNOWN"
+    trigger_source = "USER" if user_cause else "UPSTREAM" if upstream else cause_source(causes) if causes else "UNKNOWN"
     description=str(user_cause.get("shortDescription", ""))
     described_user=re.sub(r"^Started by user\s+","",description,flags=re.I).strip() if description else ""
     user = user_cause.get("userId") or user_cause.get("userName") or described_user

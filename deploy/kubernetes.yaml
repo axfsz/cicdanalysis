@@ -59,7 +59,7 @@ spec:
         fsGroup: 10001
       containers:
         - name: cicdanalysis
-          image: harbor.ugmid888.com/REPLACE_PROJECT/cicdanalysis:0.7.4
+          image: harbor.ugmid888.com/REPLACE_PROJECT/cicdanalysis:0.7.6
           imagePullPolicy: IfNotPresent
           envFrom:
             - configMapRef: {name: cicdanalysis}

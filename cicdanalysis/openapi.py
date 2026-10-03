@@ -3,7 +3,7 @@ from __future__ import annotations
 import json
 
 
-VERSION = "0.7.4"
+VERSION = "0.8.0"
 
 
 def openapi_spec() -> dict:
@@ -231,7 +231,7 @@ def openapi_spec() -> dict:
                     "summary": "转发发布群消息（触发通知 / 触发结果 / 发布通知）",
                     "description": (
                         "发布面板 Bot 每次向发布群发送消息后，把同一条消息原文转发到这里，效果与 @cicd_analysis_bot 在群里收到该消息相同："
-                        "“Jenkins 发布触发通知/触发结果”记录触发人；“Jenkins 发布通知”关联构建号，失败时拉取 Jenkins 日志分析并回复到该群的原消息。"
+                        "“Jenkins 发布触发通知/触发结果”及“Jenkins 批量发布触发通知”（每个 • 服务一条触发记录）记录触发人；“Jenkins 发布通知”关联构建号，失败时拉取 Jenkins 日志分析并回复到该群的原消息。"
                         "Telegram 不会把一个 Bot 发的群消息推送给另一个 Bot，发布面板若是独立 Bot（如 ugopsbot），必须接入此接口。"
                         "chat_id 必须是 TESTA/UAT/PROD 发布群之一，否则消息被忽略。"
                     ),
