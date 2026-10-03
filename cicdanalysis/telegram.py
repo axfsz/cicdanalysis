@@ -231,7 +231,12 @@ def parse_trigger_messages(update: dict, timezone_name: str, allowed_chats=None)
     triggered_at=_local_iso(field("触发时间"),timezone_name,message.get("date"))
     namespace=field("命名空间") or field("环境")
     http_text=field("HTTP状态")
-    message_key=f"{chat_id}:{message.get('message_id',update.get('update_id'))}"
+    legacy_key=f"{chat_id}:{message.get('message_id',update.get('update_id'))}"
+    # The release bots reuse one message: the trigger panel is edited into the notice and back,
+    # so a message id alone names several releases. The 触发时间 keeps them apart while
+    # repeated edits of the same release (status updates) still land on the same event.
+    stamp=re.sub(r"\D","",field("触发时间"))
+    message_key=f"{legacy_key}@{stamp}" if stamp else legacy_key
     common={"trigger_name":trigger_name,"telegram_username":telegram_username,"telegram_chat_id":chat_id,
             "branch":field("Git分支") or field("分支"),"triggered_at":triggered_at,
             "service_type":field("服务类型"),"service_name":field("服务名称"),"namespace":namespace,
@@ -244,12 +249,14 @@ def parse_trigger_messages(update: dict, timezone_name: str, allowed_chats=None)
     batch=bool(title.group(1)) or (not job_name and len(items)>0)
     if not batch:
         if not job_name: return []
-        return [{**common,"event_id":f"telegram-message:{message_key}","job_name":job_name,"build_url":build_url,
+        return [{**common,"event_id":f"telegram-message:{message_key}","legacy_event_id":f"telegram-message:{legacy_key}",
+                 "job_name":job_name,"build_url":build_url,
                  "queue_url":field("队列地址"),"trigger_mode":"SINGLE","batch_id":"","batch_size":1}]
     if job_name and not any(i["job_name"]==job_name for i in items):
         items.insert(0,{"job_name":job_name,"build_url":build_url,"queue_url":field("队列地址")})
     batch_id=f"telegram-batch:{message_key}"
-    return [{**common,"event_id":f"telegram-message:{message_key}:{item['job_name']}","job_name":item["job_name"],
+    return [{**common,"event_id":f"telegram-message:{message_key}:{item['job_name']}",
+             "legacy_event_id":f"telegram-message:{legacy_key}:{item['job_name']}","job_name":item["job_name"],
              "build_url":item["build_url"],"queue_url":item["queue_url"],"service_name":"","service_type":"",
              "trigger_mode":"BATCH","batch_id":batch_id,"batch_size":len(items)} for item in items]
 

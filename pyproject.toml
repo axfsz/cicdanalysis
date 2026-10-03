@@ -1,6 +1,6 @@
 [project]
 name = "cicdanalysis"
-version = "0.8.0"
+version = "0.8.1"
 description = "Jenkins build intelligence and Telegram reporting"
 requires-python = ">=3.11"
 dependencies = ["psycopg[binary]>=3.2,<4"]

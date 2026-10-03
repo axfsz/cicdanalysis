@@ -170,6 +170,39 @@ class BatchLinkingTests(unittest.TestCase):
         self.assertEqual((summary["batch_builds"], summary["batch_messages"], summary["unattributed"]), (3, 1, 0))
         self.assertEqual(summary["trigger_identity_status"], "OK")
 
+    def build(self, job, number, started):
+        job_id = self.app.db.query("SELECT id FROM jobs WHERE job_name=?", (job,))[0]["id"]
+        build_id, _ = self.app.db.save_build(job_id, {
+            "build_number": number, "trigger_source": "REMOTE", "trigger_user_id": None, "started_at": started,
+            "finished_at": started, "duration_seconds": 60, "result": "SUCCESS", "building": False})
+        self.app.db.apply_trigger_event(job_id, build_id, number, None, started)
+
+    def test_batches_posted_in_one_reused_message_are_all_attributed(self):
+        """The release bot edits the same panel message into each batch notice (2026-10-03):
+        the second batch overwrote the first one's events and its builds stayed unattributed."""
+        jobs = ["uat-report-rpc-prod", "uat-bff-merchant-prod", "uat-xgcash-admin-prod"]
+        for number, minutes in ((100, 50), (200, 5)):
+            when = datetime.now(timezone.utc) - timedelta(minutes=minutes)
+            local = when.astimezone(ZoneInfo(TZ)).strftime("%Y-%m-%d %H:%M:%S")
+            self.app.handle_update(update(BATCH.format(when=local), UAT, message_id=777))
+            # a status edit of the same notice must not add another release
+            self.app.handle_update(update(BATCH.format(when=local).replace("⏳ 已开始提交", "✅ 已提交"), UAT, message_id=777))
+            for offset, job in enumerate(jobs):
+                self.build(job, number + offset, (when + timedelta(seconds=10)).isoformat())
+        summary = self.app.reports.overview_days(1, "uat")
+        self.assertEqual([(u["name"], u["total"], u["batch"]) for u in summary["users"]], [("whisper", 6, 6)])
+        self.assertEqual((summary["batch_builds"], summary["batch_messages"]), (6, 2))
+        self.assertEqual((summary["unattributed"], summary["unmatched_triggers"]), (0, 0))
+
+    def test_replay_adopts_events_stored_before_the_trigger_time_was_in_the_id(self):
+        events = parse_trigger_messages(update(BATCH.format(when=local_now(-60)), UAT, message_id=778), TZ, CHATS)
+        for e in events:
+            self.app.record_trigger({**e, "event_id": e["legacy_event_id"]}, allow_pending=True)
+        self.app.handle_update(update(BATCH.format(when=local_now(-60)), UAT, message_id=778))
+        rows = self.app.db.query("SELECT event_id FROM trigger_events")
+        self.assertEqual(len(rows), 3)
+        self.assertEqual({r["event_id"] for r in rows}, {e["event_id"] for e in events})
+
     def test_unattributed_release_is_not_called_automatic(self):
         job_id = self.app.db.upsert_job({"project": "ugame", "job_name": "uat-report-rpc-prod", "service_name": "report-rpc",
                                          "service_type": "rpc", "environment": "uat", "namespace": "uat-prod"})

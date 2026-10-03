@@ -269,6 +269,14 @@ class Database:
         """Persist the trigger-panel identity and link an already collected build."""
         ts = now()
         with self.connect() as c:
+            legacy=event.get("legacy_event_id")
+            if legacy and legacy!=event["event_id"] and not c.execute(
+                    "SELECT id FROM trigger_events WHERE event_id=?",(event["event_id"],)).fetchone():
+                # Before 0.8.1 the id had no trigger time; adopt the stored row of the same release
+                # (same message and time) so replaying history does not duplicate it.
+                row=c.execute("SELECT id,triggered_at FROM trigger_events WHERE event_id=?",(legacy,)).fetchone()
+                if row and parse_time(row["triggered_at"])==parse_time(event["triggered_at"]):
+                    c.execute("UPDATE trigger_events SET event_id=? WHERE id=?",(event["event_id"],row["id"]))
             c.execute("""INSERT INTO trigger_events(event_id,job_id,build_number,queue_id,trigger_user_id,trigger_source,
               telegram_chat_id,branch,service_type,service_name,namespace,environment,trigger_status,http_status,
               queue_url,build_url,triggered_at,raw_payload,trigger_mode,batch_id,batch_size,created_at,updated_at)
