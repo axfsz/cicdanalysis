@@ -19,7 +19,8 @@ Jenkins 构建智能分析与 Telegram 报告服务。生产部署默认使用 D
 - Telegram 研发触发面板事件接入，按 `telegram_user_id` 支持群内多名开发人员
 - `@cicd_analysis_bot` 自动监听三个发布群的“Jenkins 发布触发结果”，从消息正文关联真实触发人
 - 解析 UAT/PROD 的“🚀 Jenkins 发布触发通知”（无构建地址），按 Job + 触发时间或“发布通知”里的构建号关联到 Jenkins Build
-- 群内出现“❌ Jenkins 发布通知”时自动拉取 Jenkins 日志分析失败原因，并回复到该群原消息
+- 群内出现“❌ Jenkins 发布通知”时自动拉取 Jenkins 日志分析失败原因，并回复到该群原消息（构建仍在运行时自动等待结束）
+- 识别“🚀 Jenkins 批量发布触发通知”，批量发布的每个服务关联到真实触发人
 - `POST /api/v1/webhooks/release-message`：发布面板 Bot 直接转发群消息原文
 - Jenkins 参数、Cause、控制台日志三层触发人回退识别
 - 通过 Job + build_number/queue_id 精确关联真实触发人与 Jenkins Build
@@ -72,6 +73,7 @@ python3 -m unittest discover -s tests -v
 | `JENKINS_API_TOKEN` | Jenkins API Token |
 | `TELEGRAM_BOT_TOKEN` | Telegram Bot Token |
 | `TELEGRAM_LISTEN_GROUP_MESSAGES` | 是否监听发布群触发结果，默认 `true` |
+| `TELEGRAM_COMMANDS` | 是否响应群内 `/analyze` 命令，默认 `true`（与上一项独立，关闭监听也能用命令） |
 | `WEBHOOK_SECRET` | Jenkins webhook Bearer Token |
 
 三个群默认值已按需求写入 `.env.example` 和 K8s ConfigMap，可通过环境变量覆盖。
@@ -200,6 +202,27 @@ curl -fsS -X POST "$CICD_ANALYSIS_URL/api/v1/webhooks/release-message" \
 会话文件保存在 `cicd-data` 卷的 `/data/telegram-user.session`，等同于该账号的登录凭据，请限制服务器访问权限；
 在 Telegram“设置 → 设备”中可随时踢下线使其失效。UAT 群是普通群，账号看到的消息 ID 与 Bot 不同，因此 UAT 的失败分析不会以“回复原消息”形式出现。
 
+## 批量发布与失败自动推送（0.8.0）
+
+**批量发布**：“🚀 Jenkins 批量发布触发通知”里 `• ` 列出的每个服务都会记为一条触发记录，按 Job + 触发时间关联到各自的构建，
+触发人统计中计入对应开发人员（面板“批量”列）。升级前已被统计为“自动触发/未识别”的批量构建，执行一次回放即可修复：
+
+```bash
+docker compose exec cicdanalysis python3 -m cicdanalysis telegram-backfill --days 14
+```
+
+**失败自动推送**：失败构建结束后自动拉日志分析并推送到所属环境的发布群（有“❌ Jenkins 发布通知”时作为回复），每个构建只推一次，
+无需再手动 `/analyze`。触发路径有三条，任一先到即可：群内“❌ Jenkins 发布通知”、Jenkins webhook、定时轮询。
+发布通知到达时构建多半仍在运行，服务会每 15 秒重查直到结束。
+
+| 变量 | 默认 | 说明 |
+|---|---|---|
+| `FAILURE_NOTIFY_MAX_AGE_MINUTES` | `180` | 结束于该时间内的失败构建才自动推送，避免首次采集时推送历史失败 |
+| `TELEGRAM_NOTIFY_ABORTED` | `false` | 取消的构建是否推送 |
+| `FOLLOW_UP_SECONDS` / `FOLLOW_UP_MAX_MINUTES` | `15` / `60` | 运行中构建的重查间隔与上限 |
+
+统计面板“失败自动分析”列出每个失败构建的推送方式与延迟，“失败自动推送”卡片出现“未推送”时请检查日志中的 `cannot diagnose` 与 Telegram 发送错误。
+
 ## 失败根因分析（0.7.0）
 
 分析顺序：Jenkins 失败步骤日志（Pipeline 节点）+ 失败的下游构建日志 → 规则匹配 → 大模型分析（已配置时）。
@@ -219,6 +242,31 @@ LLM_MODEL=deepseek-chat
 ```bash
 docker compose exec cicdanalysis python3 -m cicdanalysis analyze --job xgcash-admin-prod --build 312
 ```
+
+把分析报告发到 Telegram（手动补发/测试，不受“每个构建只发一次”限制）：
+
+```bash
+# 先预览：打印将要发送的目标群和消息内容，不发送
+docker compose exec cicdanalysis python3 -m cicdanalysis analyze --job testa-ug-app-ios --build 111 --dry-run
+# 发到该构建所属环境的发布群（群里有对应“❌ Jenkins 发布通知”时作为回复）
+docker compose exec cicdanalysis python3 -m cicdanalysis analyze --job testa-ug-app-ios --build 111 --send group
+# 发到管理群（TELEGRAM_MANAGEMENT_CHAT_ID）或任意群/个人 chat id
+docker compose exec cicdanalysis python3 -m cicdanalysis analyze --job testa-ug-app-ios --build 111 --send management
+docker compose exec cicdanalysis python3 -m cicdanalysis analyze --job testa-ug-app-ios --build 111 --send -100xxxxxxxxxx
+```
+
+### 群内命令 /analyze
+
+在 TESTA/UAT/PROD 发布群（或管理群，范围为全部环境）发送：
+
+- `/analyze`：列出本群环境**今天**失败的构建，按时间从近到远，每个 Job 只列最近一次，最多 5 个；
+  标出触发人、错误分类和根因摘要，之后又成功过的标“已恢复”；随后附上最近一次失败的完整报告。
+- `/analyze <job 或服务名> [构建号]`：某个构建的完整报告；不写构建号时取该 Job 最近一次失败。服务名按本群环境匹配 Job
+  （如 UAT 群里 `activity-rpc` → `uat-activity-rpc-prod`）。
+
+已分析过的构建直接复用结论，只有还没分析的才会拉 Jenkins 日志并调用大模型。Bot 开着隐私模式时，
+群里有多个 Bot 需发送 `/analyze@<本 Bot 用户名>`（从输入框 “/” 菜单点选会自动带上）；想直接发 `/analyze`，
+在 BotFather 执行 `/setprivacy` → Disable，然后把 Bot 移出群再拉回。
 
 读取 Pipeline 节点日志需要 Jenkins 账号能访问 `/<build>/execution/node/<id>/wfapi/*`（与 `wfapi/describe` 同权限）。
 

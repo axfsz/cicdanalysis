@@ -5,7 +5,7 @@ from datetime import datetime, timedelta, timezone
 from urllib.error import HTTPError, URLError
 
 from .analyzer import analyze
-from .db import Database
+from .db import Database, parse_time
 from .jenkins import JenkinsClient, failed_downstream, infer_job, parse_build, parse_console_trigger
 
 log = logging.getLogger(__name__)
@@ -13,8 +13,13 @@ log = logging.getLogger(__name__)
 
 class Collector:
     def __init__(self, db: Database, client: JenkinsClient, notifier=None, initial_limit: int = 20, console_max: int = 524288,
-                 console_head_bytes: int = 65536, service_users: str = "", llm=None, llm_reuse_hours: int = 24):
+                 console_head_bytes: int = 65536, service_users: str = "", llm=None, llm_reuse_hours: int = 24,
+                 notify_max_age_minutes: int = 180, notify_aborted: bool = False):
+        self.notify_results = {"FAILURE", "UNSTABLE"} | ({"ABORTED"} if notify_aborted else set())
         self.llm, self.llm_reuse_hours = llm, llm_reuse_hours
+        # Failed builds that finished within this window are reported automatically when first seen final
+        # (older ones found by the first history import are only stored).
+        self.notify_max_age = timedelta(minutes=max(1, notify_max_age_minutes))
         self.db, self.client, self.notifier = db, client, notifier
         self.initial_limit, self.console_max = initial_limit, console_max
         self.console_head_bytes=console_head_bytes
@@ -67,15 +72,32 @@ class Collector:
                     # Diagnose once per final result: polling revisits the last builds every
                     # minute, and each diagnosis downloads logs (and may call the model).
                     if became_final or not self.db.has_failure(build_id):
-                        self.diagnose(build_id, name, url, number, build, stages, meta)
-                    # 首次历史回灌不批量发送旧失败；后续新构建、webhook 构建及群内“发布通知”触发的采集正常通知。
-                    # notifier.failure 自身按 build 去重，重复采集不会重复发群。
-                    if self.notifier and (only_number is not None or became_final and previous_last > 0 and number > previous_last):
+                        try:
+                            self.diagnose(build_id, name, url, number, build, stages, meta)
+                        except (HTTPError, URLError) as exc:
+                            # Retried on the next poll: has_failure stays False.
+                            log.warning("cannot diagnose %s #%s yet: %s", name, number, exc)
+                    if self.should_notify(build_id, build, only_number is not None):
                         self.notifier.failure(build_id)
                 count += 1
             except (HTTPError, URLError) as exc:
                 log.warning("cannot collect %s #%s: %s", name, number, exc)
         return count
+
+    def should_notify(self, build_id: int, build: dict, explicit: bool) -> bool:
+        """Report every final failure automatically, exactly once.
+
+        The decision no longer depends on whether this poll saw the build turn final:
+        builds are usually first collected while still running (the release group's
+        "❌ Jenkins 发布通知" is posted from the pipeline's post step, before Jenkins
+        finalizes the build), so the old "became_final and number > last_build_number"
+        check never fired for them. ABORTED builds are reported only with TELEGRAM_NOTIFY_ABORTED.
+        """
+        if not self.notifier or build["result"] not in self.notify_results: return False
+        if not self.db.has_failure(build_id) or self.db.failure_notified(build_id): return False
+        if explicit: return True
+        finished = parse_time(build.get("finished_at")) or parse_time(build.get("started_at"))
+        return finished is not None and datetime.now(timezone.utc) - finished <= self.notify_max_age
 
     def diagnose(self, build_id: int, name: str, url: str, number: int, build: dict, stages: list[dict], meta: dict) -> dict:
         console = self.client.console(url, number, self.console_max)
@@ -122,7 +144,12 @@ class Collector:
         rows = self.db.query("SELECT id FROM builds WHERE job_id=? AND build_number=?", (job_id, number))
         build_id = rows[0]["id"] if rows else None
         if build_id is None:
-            self.collect_job(name, match["url"], number)
+            # Collect without the automatic group report: the CLI decides whether to send.
+            notifier, self.notifier = self.notifier, None
+            try:
+                self.collect_job(name, match["url"], number)
+            finally:
+                self.notifier = notifier
             build_id = self.db.query("SELECT id FROM builds WHERE job_id=? AND build_number=?", (job_id, number))[0]["id"]
         if build["result"] not in {"FAILURE", "UNSTABLE", "ABORTED"}:
             raise ValueError(f"{name} #{number} result is {build['result']}, nothing to analyze")

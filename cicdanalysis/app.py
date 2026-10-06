@@ -7,10 +7,11 @@ import queue
 import re
 import threading
 import time
-from datetime import datetime
+from datetime import datetime, timezone
 from zoneinfo import ZoneInfo
 
 from .collector import Collector
+from .commands import BOT_COMMANDS, GroupCommands
 from .config import Config
 from .db import Database, parse_time
 from .jenkins import JenkinsClient
@@ -18,7 +19,7 @@ from .llm import LLMAnalyzer
 from .jenkins import infer_job
 from .reports import Reports
 from .telegram import Telegram
-from .telegram import parse_release_result, parse_trigger_message
+from .telegram import parse_release_result, parse_trigger_messages
 from .userbot import UserAccountListener
 
 
@@ -32,11 +33,33 @@ class App:
         logging.info("LLM root-cause analysis: %s",f"enabled ({self.llm.model} @ {self.llm.base_url})" if self.llm.enabled else "disabled (LLM_API_KEY/AI_API_KEY empty), rule engine only")
         self.collector=Collector(self.db,self.jenkins,self.telegram if config.notify_failures else None,config.initial_build_limit,
                                  config.console_max_bytes,config.console_head_bytes,config.jenkins_service_users,
-                                 self.llm,config.llm_reuse_hours)
+                                 self.llm,config.llm_reuse_hours,config.failure_notify_max_age_minutes,config.notify_aborted)
         self.work=queue.Queue(); self.stop=threading.Event(); self.last_report={}
+        self.follow_ups: dict[tuple[str,int],int]={}
         self.user_listener=UserAccountListener(self)
+        self.commands=GroupCommands(self)
 
     def enqueue(self,name,number): self.work.put((name,number))
+
+    def _follow_up(self, name: str, number: int) -> None:
+        """Re-collect a build that was still running when it was announced, until Jenkins finalizes it.
+
+        The pipeline posts "❌ Jenkins 发布通知" from its post step, i.e. before the build is
+        final ("耗时: 49 sec and counting"); the analysis must wait for the final result.
+        """
+        rows=self.db.query("""SELECT b.building FROM builds b JOIN jobs j ON j.id=b.job_id
+          WHERE j.job_name=? AND b.build_number=?""",(name,number))
+        key=(name,number)
+        if not rows or not rows[0]["building"]:
+            self.follow_ups.pop(key,None); return
+        interval=max(5,self.config.follow_up_seconds)
+        attempt=self.follow_ups.get(key,0)+1
+        if attempt*interval > self.config.follow_up_max_minutes*60:
+            self.follow_ups.pop(key,None)
+            logging.warning("%s #%s still running after %s min; leaving it to the poller",name,number,self.config.follow_up_max_minutes)
+            return
+        self.follow_ups[key]=attempt
+        timer=threading.Timer(interval,self.enqueue,args=(name,number)); timer.daemon=True; timer.start()
 
     def record_trigger(self, data: dict, allow_pending: bool = False) -> dict:
         """Store who triggered a release.
@@ -67,6 +90,9 @@ class App:
         if build_number is None and queue_id is None and not allow_pending:
             raise ValueError("build_number or queue_id is required")
         triggered_at=str(data.get("triggered_at") or datetime.now(ZoneInfo(self.config.timezone)).isoformat())
+        # Store UTC so text comparisons against UTC period bounds hold on SQLite too.
+        parsed=parse_time(triggered_at)
+        if parsed: triggered_at=parsed.astimezone(timezone.utc).isoformat()
         event_key={"job_name":job_name,"build_number":build_number,"queue_id":queue_id,
                    "telegram_user_id":telegram_user_id,"telegram_username":telegram_username,"triggered_at":triggered_at}
         event_id=str(data.get("event_id") or hashlib.sha256(json.dumps(event_key,sort_keys=True).encode()).hexdigest()[:32])
@@ -135,12 +161,19 @@ class App:
     def handle_update(self, update: dict) -> dict | None:
         chats=self.config.chat_environments()
         if self.config.management_chat_id: chats.setdefault(str(self.config.management_chat_id),"")
-        event=parse_trigger_message(update,self.config.timezone,chats)
-        if event:
-            result=self.record_trigger(event,allow_pending=True)
-            logging.info("Telegram trigger captured: %s #%s by @%s matched=%s",
-                         result["job_name"],result.get("build_number") or "-",result.get("telegram_username"),result["matched"])
-            return result
+        events=parse_trigger_messages(update,self.config.timezone,chats)
+        if events:
+            results=[]
+            for event in events:
+                result=self.record_trigger(event,allow_pending=True)
+                results.append(result)
+                logging.info("Telegram trigger captured: %s #%s by @%s matched=%s%s",
+                             result["job_name"],result.get("build_number") or "-",result.get("telegram_username"),result["matched"],
+                             f" (batch {len(events)})" if event.get("trigger_mode")=="BATCH" else "")
+            if len(results)==1 and events[0].get("trigger_mode")!="BATCH": return results[0]
+            return {"accepted":True,"batch":True,"count":len(results),"matched":sum(1 for r in results if r["matched"]),
+                    "trigger_name":results[0]["trigger_name"],"telegram_username":results[0]["telegram_username"],
+                    "triggers":results}
         event=parse_release_result(update,self.config.timezone,chats)
         if event:
             result=self.record_release_result(event)
@@ -175,7 +208,7 @@ class App:
         threading.Thread(target=self._worker,daemon=True,name="collector-worker").start()
         if self.config.jenkins_url and self.config.jenkins_user and self.config.jenkins_token:
             threading.Thread(target=self._poller,daemon=True,name="jenkins-poller").start()
-        if self.config.telegram_token and self.config.telegram_listen_group_messages:
+        if self.config.telegram_token and (self.config.telegram_listen_group_messages or self.config.telegram_commands):
             threading.Thread(target=self._telegram_poller,daemon=True,name="telegram-group-poller").start()
         if self.user_listener.configured:
             threading.Thread(target=self.user_listener.run_forever,args=(self.stop,),daemon=True,name="telegram-user-listener").start()
@@ -183,12 +216,17 @@ class App:
 
     def _telegram_poller(self):
         offset=0
+        if self.config.telegram_commands:
+            try: self.telegram.set_commands(BOT_COMMANDS); logging.info("Telegram commands enabled for @%s: /analyze",self.telegram.username() or "?")
+            except Exception as exc: logging.warning("cannot register Telegram bot commands: %s",exc)
         while not self.stop.is_set():
             try:
                 updates=self.telegram.updates(offset,self.config.telegram_poll_timeout)
                 for update in updates:
                     offset=max(offset,int(update.get("update_id",0))+1)
-                    try: self.handle_update(update)
+                    try:
+                        if self.config.telegram_commands and self.commands.handle(update): continue
+                        if self.config.telegram_listen_group_messages: self.handle_update(update)
                     except Exception: logging.exception("cannot handle Telegram update %s",update.get("update_id"))
             except Exception:
                 logging.exception("Telegram group polling failed; ensure this Bot token is not consumed by another getUpdates client")
@@ -198,7 +236,9 @@ class App:
         while not self.stop.is_set():
             try: name,number=self.work.get(timeout=1)
             except queue.Empty: continue
-            try:self.collector.collect_one(name,number)
+            try:
+                self.collector.collect_one(name,number)
+                self._follow_up(name,number)
             except Exception:logging.exception("webhook collection failed")
             finally:self.work.task_done()
 
