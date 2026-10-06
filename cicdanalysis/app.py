@@ -12,7 +12,7 @@ from zoneinfo import ZoneInfo
 
 from .collector import Collector
 from .commands import BOT_COMMANDS, GroupCommands
-from .config import Config
+from .config import ENVIRONMENTS, Config
 from .db import Database, parse_time
 from .jenkins import JenkinsClient
 from .llm import LLMAnalyzer
@@ -150,7 +150,7 @@ class App:
             except Exception:
                 logging.warning("cannot list Jenkins jobs to resolve %s",service); return service
         names=set(getattr(self,"_jobs_cache",[]))
-        aliases={"testa":("testa","test"),"uat":("uat",),"prod":("prod",)}.get(environment,(environment,) if environment else ())
+        aliases={"testa":("testa","test"),"uat":("uat",),"prod":("prod",),"groxy":("groxy",)}.get(environment,(environment,) if environment else ())
         candidates=[service]+[f"{service}-{a}" for a in aliases]+[f"{a}-{service}" for a in aliases]
         exact=next((c for c in candidates if c in names),None)
         if exact: return exact
@@ -265,7 +265,7 @@ class App:
 
     def send_reports(self,kind,period_key=""):
         all_ok=True
-        for env in ("testa","uat","prod"):
+        for env in ENVIRONMENTS:
             chat_id=self.config.chat_for(env)
             key=period_key or self.reports.period_key(kind)
             if self.db.report_was_sent(kind,env,key,chat_id): continue

@@ -36,7 +36,7 @@ POST /api/v1/webhooks/trigger
 | `telegram_user_id` | `callback_query.from.id` | 稳定唯一标识，必须优先传递 |
 | `telegram_username` | `callback_query.from.username` | 可能被用户修改 |
 | `trigger_name` | `first_name + last_name` | 报告显示名 |
-| `telegram_chat_id` | `callback_query.message.chat.id` | TESTA/UAT/PROD 群 ID |
+| `telegram_chat_id` | `callback_query.message.chat.id` | TESTA/UAT/PROD/GROXY 群 ID |
 
 系统不会把群绑定成一个用户。群里 Mars、mew、antti、zero 或其他开发人员点击时，都会按各自 `telegram_user_id` 建立独立记录；无需预先维护人员名单。
 
@@ -47,7 +47,7 @@ TELEGRAM_LISTEN_GROUP_MESSAGES=true
 TELEGRAM_POLL_TIMEOUT=30
 ```
 
-系统仅接受 `.env` 中 TESTA、UAT、PROD（以及可选管理群）的消息，忽略其他群和无关消息。解析字段包括触发人、项目、分支、时间、服务、命名空间、HTTP 状态、队列地址和构建地址。消息 `chat_id + message_id` 作为幂等键，编辑消息不会重复计数。
+系统仅接受 `.env` 中 TESTA、UAT、PROD、GROXY（以及可选管理群）的消息，忽略其他群和无关消息。解析字段包括触发人、项目、分支、时间、服务、命名空间、HTTP 状态、队列地址和构建地址。消息 `chat_id + message_id` 作为幂等键，编辑消息不会重复计数。
 
 如果日志出现 `Conflict: terminated by other getUpdates request`，说明同一个 Bot Token 正被其他进程长轮询。只能保留一个消费者；此时设置 `TELEGRAM_LISTEN_GROUP_MESSAGES=false`，并使用下面的 Trigger Webhook。
 
@@ -162,6 +162,7 @@ def on_release_button(callback_query, release):
 | TESTA | `-1003919548725` |
 | UAT | `-5592801576` |
 | PROD | `-1003412281586` |
+| GROXY | `-5418156281` |
 
 各环境报告仍发送至对应群。报告会显示：
 

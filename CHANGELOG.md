@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.8.2
+
+- 新增第四个分析群：UG-groxy环境发布群（`TELEGRAM_GROXY_CHAT_ID`，默认 `-5418156281`），环境名 `groxy`。
+  群内发布消息（发布机器人 @uggroxycicdbot）按 GROXY 环境识别触发人和发布结果，失败分析推送、`/analyze` 命令、
+  日报/周报/月报都按该群单独发送；面板与 API 的环境筛选新增 `groxy`。
+- Jenkins Job 名中的 `groxy`（如 `activity-rpc-groxy`）识别为 GROXY 环境。
+- `.env.example` 的 `TELEGRAM_USER_TRUSTED_SENDERS` 增加 `uggroxycicdbot`；用真人账号读取群消息时需把该账号拉进新群。
+
 ## 0.8.1
 
 - 修复：同一条群消息里先后发出的多次批量发布，只有第一次被识别，之后的构建显示为“未识别触发人”。

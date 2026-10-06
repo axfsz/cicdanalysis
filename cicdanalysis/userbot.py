@@ -2,7 +2,7 @@
 
 Telegram never delivers one bot's group messages to another bot, and each
 release group is served by its own release bot (@ugopsbot, @uguatdeploybot,
-@ugprodopsbot). A member user account sees every message, so it can feed the
+@ugprodopsbot, @uggroxycicdbot). A member user account sees every message, so it can feed the
 same parsers without any change to the release bots.
 
 Optional: needs ``telethon`` plus TELEGRAM_USER_API_ID / TELEGRAM_USER_API_HASH

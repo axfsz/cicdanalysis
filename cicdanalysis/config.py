@@ -27,6 +27,10 @@ def _first_int(*names: str, default: int) -> int:
         return default
 
 
+# Release groups, one per environment; each gets its own failure reports and daily/weekly/monthly reports.
+ENVIRONMENTS = ("testa", "uat", "prod", "groxy")
+
+
 @dataclass(frozen=True)
 class Config:
     host: str = os.getenv("APP_HOST", "0.0.0.0")
@@ -66,6 +70,7 @@ class Config:
     testa_chat_id: str = os.getenv("TELEGRAM_TESTA_CHAT_ID", "-1003919548725")
     uat_chat_id: str = os.getenv("TELEGRAM_UAT_CHAT_ID", "-5592801576")
     prod_chat_id: str = os.getenv("TELEGRAM_PROD_CHAT_ID", "-1003412281586")
+    groxy_chat_id: str = os.getenv("TELEGRAM_GROXY_CHAT_ID", "-5418156281")
     management_chat_id: str = os.getenv("TELEGRAM_MANAGEMENT_CHAT_ID", "")
     notify_failures: bool = _bool("TELEGRAM_NOTIFY_FAILURES", True)
     # Failed builds finished within N minutes are analyzed and reported automatically (older history is only stored).
@@ -83,13 +88,14 @@ class Config:
     monthly_day: int = _int("REPORT_MONTHLY_DAY", 1)
 
     def chat_for(self, environment: str) -> str:
-        return {"testa": self.testa_chat_id, "test": self.testa_chat_id,
-                "uat": self.uat_chat_id, "prod": self.prod_chat_id}.get(environment.lower(), "")
+        return {"testa": self.testa_chat_id, "test": self.testa_chat_id, "uat": self.uat_chat_id,
+                "prod": self.prod_chat_id, "groxy": self.groxy_chat_id}.get(environment.lower(), "")
 
     def chat_environments(self) -> dict[str, str]:
         """Release-group chat id -> environment; the group a message came from decides its environment."""
-        pairs = ((self.testa_chat_id, "testa"), (self.uat_chat_id, "uat"), (self.prod_chat_id, "prod"))
+        pairs = ((self.testa_chat_id, "testa"), (self.uat_chat_id, "uat"), (self.prod_chat_id, "prod"),
+                 (self.groxy_chat_id, "groxy"))
         return {str(chat): env for chat, env in pairs if chat}
 
     def telegram_allowed_chats(self) -> set[str]:
-        return {str(x) for x in (self.testa_chat_id,self.uat_chat_id,self.prod_chat_id,self.management_chat_id) if x}
+        return {str(x) for x in (self.testa_chat_id,self.uat_chat_id,self.prod_chat_id,self.groxy_chat_id,self.management_chat_id) if x}

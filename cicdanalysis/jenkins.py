@@ -122,7 +122,7 @@ def strip_html(text: str) -> str:
 def infer_job(job_name: str, job_url: str = "") -> dict:
     leaf = job_name.split("/")[-1]
     parts = leaf.split("-")
-    env_aliases = {"testa", "testb", "testc", "test", "uat", "prod", "production"}
+    env_aliases = {"testa", "testb", "testc", "test", "uat", "prod", "production", "groxy"}
     # "uat-activity-rpc-prod" is the UAT copy of a prod job: a leading
     # environment prefix wins over the suffix.
     first = parts[0].lower() if parts else ""
