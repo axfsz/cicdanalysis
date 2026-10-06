@@ -43,7 +43,9 @@ RULES = [
 
 ANSI = re.compile(r"\x1b\[[0-?]*[ -/]*[@-~]")
 # Jenkins Timestamper prefix, e.g. "[2026-09-28T08:39:17.434Z] "
-TIMESTAMP = re.compile(r"(?m)^\[\d{4}-\d\d-\d\dT[\d:.]+Z?\] ?|^\d\d:\d\d:\d\d(?:\.\d+)? ")
+TIMESTAMP = re.compile(r"(?m)^[ \t\r\ufeff]*(?:\[\d{4}-\d\d-\d\dT[\d:.]+(?:Z|[+-]\d\d:?\d\d)?\] ?|\d\d:\d\d:\d\d(?:\.\d+)? )")
+# Any ISO timestamp left inside a line (e.g. the Pipeline step log): never part of an error fingerprint.
+ISO_TIME = re.compile(r"\[?\d{4}-\d\d-\d\d[T ]\d\d:\d\d:\d\d(?:\.\d+)?(?:Z|[+-]\d\d:?\d\d)?\]?")
 # Docker BuildKit step output, e.g. "#12 4.154 main.go:13:2: ..." or "4.154 main.go:..." in the error summary.
 BUILDKIT = re.compile(r"(?m)^#\d+ \d+\.\d{3} |^\d+\.\d{3} ")
 
@@ -76,7 +78,7 @@ def redact(text: str) -> str:
 
 
 def normalize(line: str) -> str:
-    line = redact(line.strip())
+    line = redact(ISO_TIME.sub("", line).strip())
     line = re.sub(r"https?://\S+", "<URL>", line)
     line = re.sub(r"\b[0-9a-f]{7,64}\b", "<HEX>", line, flags=re.I)
     line = re.sub(r"\b\d{2,}\b", "<N>", line)

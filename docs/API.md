@@ -98,7 +98,7 @@ cicdanalysis_builds_total{result="FAILURE"} 19
 |---|---|---|---|---|
 | `days` | integer | 否 | `7` | `1`～`365`；未传 `date` 时使用 |
 | `date` | string | 否 | - | `YYYY-MM-DD`；传入后优先于 `days` |
-| `environment` | string | 否 | 空 | 空、`testa`、`uat`、`prod` |
+| `environment` | string | 否 | 空 | 空、`testa`、`uat`、`prod`、`groxy` |
 
 请求示例：
 
@@ -160,7 +160,7 @@ curl 'http://127.0.0.1:8080/api/v1/overview?date=2026-09-07&environment=prod'
 |---|---|---|---|---|
 | `limit` | integer | 否 | `100` | `1`～`500` |
 | `result` | string | 否 | - | `SUCCESS`、`FAILURE`、`UNSTABLE`、`ABORTED`、`NOT_BUILT`、`UNKNOWN` |
-| `environment` | string | 否 | - | `testa`、`uat`、`prod` |
+| `environment` | string | 否 | - | `testa`、`uat`、`prod`、`groxy` |
 | `trigger_user` | string | 否 | - | Jenkins 用户名精确匹配，例如 `mew` |
 
 请求示例：

@@ -29,7 +29,8 @@ class TelegramIngestTests(unittest.TestCase):
         update={"update_id":77,"message":{"message_id":45,"date":1788770000,
                 "chat":{"id":-1003919548725},"text":MESSAGE}}
         event=parse_trigger_message(update,"Asia/Kuala_Lumpur",{"-1003919548725"})
-        self.assertEqual(event["event_id"],"telegram-message:-1003919548725:45")
+        self.assertEqual(event["event_id"],"telegram-message:-1003919548725:45@20260907155717")
+        self.assertEqual(event["legacy_event_id"],"telegram-message:-1003919548725:45")
         self.assertEqual(event["job_name"],"statistics-testa")
         self.assertEqual(event["build_url"],"https://ugjekins.ugmid888.com/job/statistics-testa/101/")
         self.assertEqual(event["trigger_name"],"Mars Stephen")

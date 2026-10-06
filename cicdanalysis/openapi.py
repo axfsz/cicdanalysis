@@ -3,7 +3,7 @@ from __future__ import annotations
 import json
 
 
-VERSION = "0.7.4"
+VERSION = "0.8.0"
 
 
 def openapi_spec() -> dict:
@@ -95,7 +95,7 @@ def openapi_spec() -> dict:
                     "parameters": [
                         _query_parameter("days", "统计最近多少天，包含当前时间向前的滚动窗口。", "integer", 7, minimum=1, maximum=365),
                         _query_parameter("date", "选择单个自然日，格式 YYYY-MM-DD；传入后优先于 days，日期边界使用 APP_TIMEZONE。", "string", None, format="date"),
-                        _query_parameter("environment", "环境筛选；空值表示全部环境。", "string", "", enum=["", "testa", "uat", "prod"]),
+                        _query_parameter("environment", "环境筛选；空值表示全部环境。", "string", "", enum=["", "testa", "uat", "prod", "groxy"]),
                     ],
                     "responses": {"200": _json_response("综合概览", "Overview"), "400": error_response},
                 }
@@ -109,7 +109,7 @@ def openapi_spec() -> dict:
                     "parameters": [
                         _query_parameter("limit", "最多返回的记录数。", "integer", 100, minimum=1, maximum=500),
                         _query_parameter("result", "Jenkins 构建结果。", "string", None, enum=["SUCCESS", "FAILURE", "UNSTABLE", "ABORTED", "NOT_BUILT", "UNKNOWN"]),
-                        _query_parameter("environment", "Job 所属环境。", "string", None, enum=["testa", "uat", "prod"]),
+                        _query_parameter("environment", "Job 所属环境。", "string", None, enum=["testa", "uat", "prod", "groxy"]),
                         _query_parameter("trigger_user", "Jenkins 用户名，精确匹配，例如 `mew`。", "string", None),
                     ],
                     "responses": {
@@ -148,7 +148,7 @@ def openapi_spec() -> dict:
                         _query_parameter("days", "统计最近多少天。", "integer", 7, minimum=1, maximum=365),
                         _query_parameter("date", "选择单个自然日，格式 YYYY-MM-DD；传入后优先于 days。", "string", None, format="date"),
                         _query_parameter("limit", "最多返回的记录数。", "integer", 100, minimum=1, maximum=500),
-                        _query_parameter("environment", "环境筛选；空值表示全部环境。", "string", "", enum=["", "testa", "uat", "prod"]),
+                        _query_parameter("environment", "环境筛选；空值表示全部环境。", "string", "", enum=["", "testa", "uat", "prod", "groxy"]),
                     ],
                     "responses": {"200": _array_response("触发事件列表", "TriggerEvent"), "400": error_response},
                 }
@@ -231,9 +231,9 @@ def openapi_spec() -> dict:
                     "summary": "转发发布群消息（触发通知 / 触发结果 / 发布通知）",
                     "description": (
                         "发布面板 Bot 每次向发布群发送消息后，把同一条消息原文转发到这里，效果与 @cicd_analysis_bot 在群里收到该消息相同："
-                        "“Jenkins 发布触发通知/触发结果”记录触发人；“Jenkins 发布通知”关联构建号，失败时拉取 Jenkins 日志分析并回复到该群的原消息。"
+                        "“Jenkins 发布触发通知/触发结果”及“Jenkins 批量发布触发通知”（每个 • 服务一条触发记录）记录触发人；“Jenkins 发布通知”关联构建号，失败时拉取 Jenkins 日志分析并回复到该群的原消息。"
                         "Telegram 不会把一个 Bot 发的群消息推送给另一个 Bot，发布面板若是独立 Bot（如 ugopsbot），必须接入此接口。"
-                        "chat_id 必须是 TESTA/UAT/PROD 发布群之一，否则消息被忽略。"
+                        "chat_id 必须是 TESTA/UAT/PROD/GROXY 发布群之一，否则消息被忽略。"
                     ),
                     "operationId": "receiveReleaseMessage",
                     "security": [{"TriggerBearer": []}],
@@ -259,7 +259,7 @@ def openapi_spec() -> dict:
                 "post": {
                     "tags": ["Trigger Panel"],
                     "summary": "回放发布群历史消息",
-                    "description": "由正在运行的真人账号监听连接读取最近 N 天三个发布群的消息并重新入库（幂等）。"
+                    "description": "由正在运行的真人账号监听连接读取最近 N 天四个发布群的消息并重新入库（幂等）。"
                                    "`python3 -m cicdanalysis telegram-backfill --days N` 在服务容器内执行时即调用此接口。",
                     "operationId": "telegramBackfill",
                     "security": [{"WebhookBearer": []}],

@@ -27,6 +27,10 @@ def _first_int(*names: str, default: int) -> int:
         return default
 
 
+# Release groups, one per environment; each gets its own failure reports and daily/weekly/monthly reports.
+ENVIRONMENTS = ("testa", "uat", "prod", "groxy")
+
+
 @dataclass(frozen=True)
 class Config:
     host: str = os.getenv("APP_HOST", "0.0.0.0")
@@ -46,6 +50,8 @@ class Config:
     jenkins_service_users: str = os.getenv("JENKINS_SERVICE_USERS", "ugadmin,cicd-analysis,anonymous")
     telegram_token: str = os.getenv("TELEGRAM_BOT_TOKEN", "")
     telegram_listen_group_messages: bool = _bool("TELEGRAM_LISTEN_GROUP_MESSAGES", True)
+    # /analyze in the release groups; needs the bot's getUpdates (no webhook set on this bot token).
+    telegram_commands: bool = _bool("TELEGRAM_COMMANDS", True)
     telegram_poll_timeout: int = _int("TELEGRAM_POLL_TIMEOUT", 30)
     # Optional user-account (MTProto) reader for the release groups; see userbot.py.
     telegram_user_api_id: str = os.getenv("TELEGRAM_USER_API_ID", "")
@@ -64,8 +70,16 @@ class Config:
     testa_chat_id: str = os.getenv("TELEGRAM_TESTA_CHAT_ID", "-1003919548725")
     uat_chat_id: str = os.getenv("TELEGRAM_UAT_CHAT_ID", "-5592801576")
     prod_chat_id: str = os.getenv("TELEGRAM_PROD_CHAT_ID", "-1003412281586")
+    groxy_chat_id: str = os.getenv("TELEGRAM_GROXY_CHAT_ID", "-5418156281")
     management_chat_id: str = os.getenv("TELEGRAM_MANAGEMENT_CHAT_ID", "")
     notify_failures: bool = _bool("TELEGRAM_NOTIFY_FAILURES", True)
+    # Failed builds finished within N minutes are analyzed and reported automatically (older history is only stored).
+    failure_notify_max_age_minutes: int = _int("FAILURE_NOTIFY_MAX_AGE_MINUTES", 180)
+    notify_aborted: bool = _bool("TELEGRAM_NOTIFY_ABORTED", False)
+    # A build announced by "Jenkins 发布通知"/webhook while Jenkins still reports it running is re-checked
+    # every N seconds until it finishes (at most FOLLOW_UP_MAX_MINUTES).
+    follow_up_seconds: int = _int("FOLLOW_UP_SECONDS", 15)
+    follow_up_max_minutes: int = _int("FOLLOW_UP_MAX_MINUTES", 60)
     webhook_secret: str = os.getenv("WEBHOOK_SECRET", "")
     trigger_webhook_secret: str = os.getenv("TRIGGER_WEBHOOK_SECRET", os.getenv("WEBHOOK_SECRET", ""))
     daily_hour: int = _int("REPORT_DAILY_HOUR", 9)
@@ -74,13 +88,14 @@ class Config:
     monthly_day: int = _int("REPORT_MONTHLY_DAY", 1)
 
     def chat_for(self, environment: str) -> str:
-        return {"testa": self.testa_chat_id, "test": self.testa_chat_id,
-                "uat": self.uat_chat_id, "prod": self.prod_chat_id}.get(environment.lower(), "")
+        return {"testa": self.testa_chat_id, "test": self.testa_chat_id, "uat": self.uat_chat_id,
+                "prod": self.prod_chat_id, "groxy": self.groxy_chat_id}.get(environment.lower(), "")
 
     def chat_environments(self) -> dict[str, str]:
         """Release-group chat id -> environment; the group a message came from decides its environment."""
-        pairs = ((self.testa_chat_id, "testa"), (self.uat_chat_id, "uat"), (self.prod_chat_id, "prod"))
+        pairs = ((self.testa_chat_id, "testa"), (self.uat_chat_id, "uat"), (self.prod_chat_id, "prod"),
+                 (self.groxy_chat_id, "groxy"))
         return {str(chat): env for chat, env in pairs if chat}
 
     def telegram_allowed_chats(self) -> set[str]:
-        return {str(x) for x in (self.testa_chat_id,self.uat_chat_id,self.prod_chat_id,self.management_chat_id) if x}
+        return {str(x) for x in (self.testa_chat_id,self.uat_chat_id,self.prod_chat_id,self.groxy_chat_id,self.management_chat_id) if x}
